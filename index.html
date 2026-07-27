@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>배당 투자 계산기</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Georgia', serif;
+            background-color: #faf7f2;
+            color: #2b2b2b;
+            padding: 40px 20px;
+        }
+        .container {
+            max-width: 700px;
+            margin: 0 auto;
+        }
+        h1 { font-size: 26px; margin-bottom: 30px; }
+        .section {
+            background-color: #f0ebe1;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        label { display: block; margin-top: 12px; margin-bottom: 4px; font-size: 14px; }
+        input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+        }
+        .stock-row { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+        .stock-row span { width: 90px; font-size: 14px; }
+        .stock-row input { width: 80px; }
+        button {
+            margin-top: 20px;
+            padding: 12px 20px;
+            background-color: #8a7a5c;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 15px;
+        }
+        button:hover { background-color: #75674d; }
+        .toggle { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+        #result { margin-top: 20px; }
+        #result .row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #ddd2ba; }
+        #result .label { color: #555; }
+        #result .value { font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>미국 ETF 계산기</h1>
+
+        <div class="section">
+            <label>총 투자 금액 (원)</label>
+            <input type="number" id="totalAmount" value="10000000">
+
+            <label>투자 기간 (년)</label>
+            <input type="number" id="years" value="10">
+
+            <label>종목별 투자 비중 (%, 합계 100)</label>
+            <div class="stock-row"><span>S&P500</span><input type="number" id="ratio_sp500" value="20"></div>
+            <div class="stock-row"><span>나스닥</span><input type="number" id="ratio_nasdaq" value="20"></div>
+            <div class="stock-row"><span>SCHD</span><input type="number" id="ratio_schd" value="20"></div>
+            <div class="stock-row"><span>JEPI</span><input type="number" id="ratio_jepi" value="20"></div>
+            <div class="stock-row"><span>JEPQ</span><input type="number" id="ratio_jepq" value="20"></div>
+            <div id="ratioSumDisplay" style="margin-top: 10px; font-weight: bold;">현재 합계: 100%</div>
+
+<div class="toggle">
+                <input type="checkbox" id="reinvest" checked>
+                <label style="margin:0;">배당 재투자 (체크 시 ON)</label>
+            </div>
+
+            <button id="calcButton">계산하기</button>
+        </div>
+
+        <div class="section">
+            <h3 style="margin-top:0;">종목별 정보</h3>
+            <div class="row"><span class="label">S&P500</span><span class="value">연평균 수익률 10.76% · 배당수익률 1.1% · 배당성장 없음</span></div>
+            <div class="row"><span class="label">나스닥</span><span class="value">연평균 수익률 10.75% · 배당수익률 0.4% · 배당성장 없음</span></div>
+            <div class="row"><span class="label">SCHD</span><span class="value">연평균 수익률 13.26% · 배당수익률 3.3% · 배당 매년 약 11%씩 성장</span></div>
+            <div class="row"><span class="label">JEPI</span><span class="value">연평균 수익률 11.12% · 배당수익률 8.3% · 배당성장 없음(변동성 있음)</span></div>
+            <div class="row"><span class="label">JEPQ</span><span class="value">연평균 수익률 16.31% · 배당수익률 11.1% · 배당성장 없음(변동성 있음)</span></div>
+            <details style="margin-top: 15px;">
+                <summary style="cursor: pointer; font-weight: bold; padding: 8px 0;">자세히 보기 (계산 방식 안내)</summary>
+                <p style="font-size:13px; color:#555; line-height:1.6; margin-top: 10px;">
+                    <b>1. 수익률 산출 방법</b><br>
+                    각 종목의 "연평균 수익률"은 ETF 출시일부터 현재까지의 총수익률(배당 재투자 포함) 기준입니다. 
+                    여기서 배당수익률을 따로 뺀 "순수 가격 상승분"만 매년 자산 성장에 반영하고, 
+                    배당은 별도로 계산해서 이중으로 더해지지 않게 처리했습니다.
+                    (예: SCHD 총수익 13.26% − 배당 3.3% ≈ 가격상승 9.96%)
+                    <br><br>
+                    <b>2. 데이터 기간이 서로 다릅니다</b><br>
+                    S&P500(33년), 나스닥(27년), SCHD(15년), JEPI(6년), JEPQ(4년)로 기준 기간이 다릅니다. 
+                    기간이 짧은 종목(특히 JEPQ)은 최근 상승장의 영향을 더 크게 받았을 수 있어, 
+                    과거 평균이 미래에도 그대로 이어진다는 보장은 없습니다.
+                    <br><br>
+                    <b>3. 배당성장 반영 방식</b><br>
+                    SCHD는 매년 배당수익률 자체가 약 11%씩 늘어나는 것으로 계산합니다 (10년 평균 배당성장률 기준). 
+                    JEPI·JEPQ는 배당이 옵션 프리미엄에서 나오는 구조라 성장 개념이 없어, 
+                    배당수익률을 처음 값으로 고정해서 계산합니다.
+                    <br><br>
+                    <b>4. 세금 계산 방식</b><br>
+                    배당소득세는 15%로 매년 배당금에서 원천징수됩니다 (한미 조세조약 기준). 
+                    최종 매도 시에는 투자 자산이 불어난 부분(매매차익)에 대해서만 
+                    연 250만원 공제 후 22% 양도소득세가 적용됩니다. 
+                    이미 받은 배당 현금은 매도 대상이 아니므로 양도소득세 계산에서 제외됩니다.
+                    <br><br>
+                    <b>5. 재투자 ON/OFF 차이</b><br>
+                    재투자 ON: 세후 배당금이 매년 원금에 합쳐져서 복리로 불어납니다.<br>
+                    재투자 OFF: 세후 배당금은 원금과 분리되어 현금으로 따로 쌓이고, 원금만 가격상승률로 불어납니다.
+                    <br><br>
+                    <i>※ 이 계산은 과거 데이터 기반 추정이며, 실제 결과를 보장하지 않습니다. 
+                    실제 세금은 계좌 종류, 거주자 지위, 개인 상황에 따라 달라질 수 있습니다.</i>
+                </p>
+            </details>
+        </div>
+
+        <div class="section" id="result" style="display:none;"></div>
+    </div>
+
+    <script>
+        // 종목별 데이터: 가격상승률(순수), 시작 배당수익률, 배당 연 성장률
+        const stocks = {
+            sp500:  { growth: 0.0966, yieldStart: 0.011, yieldGrowth: 0 },
+            nasdaq: { growth: 0.1035, yieldStart: 0.004, yieldGrowth: 0 },
+            schd:   { growth: 0.0996, yieldStart: 0.033, yieldGrowth: 0.11 },
+            jepi:   { growth: 0.028,  yieldStart: 0.083, yieldGrowth: 0 },
+            jepq:   { growth: 0.052,  yieldStart: 0.111, yieldGrowth: 0 }
+        };
+
+        const TAX_RATE = 0.15;
+
+        // 실시간 비중 합계 표시
+const ratioInputs = ["ratio_sp500", "ratio_nasdaq", "ratio_schd", "ratio_jepi", "ratio_jepq"];
+function updateRatioSum() {
+    let sum = 0;
+    ratioInputs.forEach(function(id) {
+        sum += parseFloat(document.getElementById(id).value) || 0;
+    });
+    const display = document.getElementById("ratioSumDisplay");
+    display.textContent = "현재 합계: " + sum + "%";
+    display.style.color = (sum === 100) ? "green" : "#c0392b";
+}
+ratioInputs.forEach(function(id) {
+    document.getElementById(id).addEventListener("input", updateRatioSum);
+});
+updateRatioSum();
+
+        document.getElementById("calcButton").addEventListener("click", function() {
+            const totalAmount = parseFloat(document.getElementById("totalAmount").value);
+            const years = parseInt(document.getElementById("years").value);
+            const reinvest = document.getElementById("reinvest").checked;
+
+            const ratios = {
+                sp500: parseFloat(document.getElementById("ratio_sp500").value) / 100,
+                nasdaq: parseFloat(document.getElementById("ratio_nasdaq").value) / 100,
+                schd: parseFloat(document.getElementById("ratio_schd").value) / 100,
+                jepi: parseFloat(document.getElementById("ratio_jepi").value) / 100,
+                jepq: parseFloat(document.getElementById("ratio_jepq").value) / 100
+            };
+
+            const ratioSum = Object.values(ratios).reduce((a, b) => a + b, 0);
+            if (Math.abs(ratioSum - 1) > 0.01) {
+                alert("종목 비중의 합이 100%가 되어야 합니다.");
+                return;
+            }
+
+            let totalAsset = 0;
+            let totalCashDividend = 0;
+            let lastYearDividend = 0;
+
+            for (const key in stocks) {
+                let principal = totalAmount * ratios[key];
+                let currentYield = stocks[key].yieldStart;
+                let cashPile = 0;
+
+                for (let y = 0; y < years; y++) {
+                    const dividend = principal * currentYield;
+                    const afterTaxDividend = dividend * (1 - TAX_RATE);
+
+                    if (reinvest) {
+                        principal += afterTaxDividend;
+                    } else {
+                        cashPile += afterTaxDividend;
+                    }
+
+                    principal *= (1 + stocks[key].growth);
+                    currentYield *= (1 + stocks[key].yieldGrowth);
+
+                    if (y === years - 1) {
+                        lastYearDividend += afterTaxDividend;
+                    }
+                }
+
+                totalAsset += principal;
+                totalCashDividend += cashPile;
+            }
+
+            const finalTotal = totalAsset + totalCashDividend;
+
+            // 매도 시 양도소득세 계산 (투자 자산 부분만 해당, 이미 받은 현금 배당은 제외)
+            const capitalGain = Math.max(0, totalAsset - totalAmount);
+            const taxableGain = Math.max(0, capitalGain - 2500000);
+            const capitalGainsTax = taxableGain * 0.22;
+            const netAfterSale = finalTotal - capitalGainsTax;
+
+            const resultDiv = document.getElementById("result");
+            resultDiv.style.display = "block";
+            resultDiv.innerHTML = `
+                <div class="row"><span class="label">${years}년 후 총 자산</span><span class="value">${Math.round(finalTotal).toLocaleString()}원</span></div>
+                <div class="row"><span class="label">마지막 해 예상 연 배당금 (세후)</span><span class="value">${Math.round(lastYearDividend).toLocaleString()}원</span></div>
+                <div class="row"><span class="label">투자 원금</span><span class="value">${Math.round(totalAmount).toLocaleString()}원</span></div>
+                <div class="row"><span class="label">매도 시 예상 양도소득세</span><span class="value">${Math.round(capitalGainsTax).toLocaleString()}원</span></div>
+                <div class="row"><span class="label">전량 매도 시 실수령액</span><span class="value">${Math.round(netAfterSale).toLocaleString()}원</span></div>
+            `;
+        });
+    </script>
+</body>
+</html>

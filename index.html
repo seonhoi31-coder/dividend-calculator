@@ -48,6 +48,45 @@
         #result .row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #ddd2ba; }
         #result .label { color: #555; }
         #result .value { font-weight: bold; }
+        @media (max-width: 600px) {
+            body {
+                padding: 20px 15px;
+            }
+
+            h1 {
+                font-size: 22px;
+            }
+
+            .container {
+                max-width: 100%;
+            }
+
+            .stock-row {
+                flex-wrap: wrap;
+            }
+
+            .stock-row span {
+                width: 70px;
+                font-size: 13px;
+            }
+
+            .stock-row input {
+                width: 70px;
+            }
+
+            #result .row {
+                flex-direction: column;
+                gap: 4px;
+            }
+
+            #result .value {
+                font-size: 15px;
+            }
+
+            button {
+                width: 100%;
+            }
+        }
     </style>
 </head>
 <body>

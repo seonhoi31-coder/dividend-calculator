@@ -56,7 +56,7 @@
 
         <div class="section">
             <label>총 투자 금액 (원)</label>
-            <input type="number" id="totalAmount" value="10000000">
+            <input type="text" id="totalAmount" value="10,000,000">
 
             <label>투자 기간 (년)</label>
             <input type="number" id="years" value="10">
@@ -150,8 +150,26 @@ ratioInputs.forEach(function(id) {
 });
 updateRatioSum();
 
+// 숫자에 콤마 자동 추가
+const totalAmountInput = document.getElementById("totalAmount");
+
+totalAmountInput.addEventListener("input", function() {
+    // 콤마 다 지우고 숫자만 남기기
+    let rawValue = this.value.replace(/,/g, "");
+    
+    // 숫자가 아닌 문자 제거
+    rawValue = rawValue.replace(/[^0-9]/g, "");
+    
+    // 다시 콤마 넣어서 보여주기
+    if (rawValue) {
+        this.value = parseInt(rawValue).toLocaleString();
+    } else {
+        this.value = "";
+    }
+});
+
         document.getElementById("calcButton").addEventListener("click", function() {
-            const totalAmount = parseFloat(document.getElementById("totalAmount").value);
+            const totalAmount = parseFloat(document.getElementById("totalAmount").value.replace(/,/g, ""));
             const years = parseInt(document.getElementById("years").value);
             const reinvest = document.getElementById("reinvest").checked;
 

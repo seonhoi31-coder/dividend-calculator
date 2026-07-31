@@ -233,12 +233,13 @@ totalAmountInput.addEventListener("input", function() {
             let lastYearDividend = 0;
 
             for (const key in stocks) {
-                let principal = totalAmount * ratios[key];
-                let currentYield = stocks[key].yieldStart;
-                let cashPile = 0;
+    let principal = totalAmount * ratios[key];
+    const originalAllocation = principal; // 배당 계산 기준이 되는 고정 원금
+    let currentYield = stocks[key].yieldStart;
+    let cashPile = 0;
 
                 for (let y = 0; y < years; y++) {
-                    const dividend = principal * currentYield;
+                    const dividend = originalAllocation * currentYield;
                     const afterTaxDividend = dividend * (1 - TAX_RATE);
 
                     if (reinvest) {

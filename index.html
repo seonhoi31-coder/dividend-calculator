@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <head>
-    <title>배당 투자 계산기</title>
+    <title>미국 ETF 계산기</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
     <style>
         body {
             margin: 0;
@@ -12,10 +12,7 @@
             color: #2b2b2b;
             padding: 40px 20px;
         }
-        .container {
-            max-width: 700px;
-            margin: 0 auto;
-        }
+        .container { max-width: 700px; margin: 0 auto; }
         h1 { font-size: 26px; margin-bottom: 30px; }
         .section {
             background-color: #f0ebe1;
@@ -24,7 +21,7 @@
             margin-bottom: 20px;
         }
         label { display: block; margin-top: 12px; margin-bottom: 4px; font-size: 14px; }
-        input[type="number"] {
+        input[type="number"], input[type="text"] {
             width: 100%;
             padding: 8px;
             border-radius: 6px;
@@ -50,44 +47,19 @@
         #result .row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #ddd2ba; }
         #result .label { color: #555; }
         #result .value { font-weight: bold; }
+        #chartSection { display: none; }
+        #chartSection canvas { max-width: 100%; }
+
         @media (max-width: 600px) {
-            body {
-                padding: 20px 15px;
-            }
-
-            h1 {
-                font-size: 22px;
-            }
-
-            .container {
-                max-width: 100%;
-            }
-
-            .stock-row {
-                flex-wrap: wrap;
-            }
-
-            .stock-row span {
-                width: 70px;
-                font-size: 13px;
-            }
-
-            .stock-row input {
-                width: 70px;
-            }
-
-            #result .row {
-                flex-direction: column;
-                gap: 4px;
-            }
-
-            #result .value {
-                font-size: 15px;
-            }
-
-            button {
-                width: 100%;
-            }
+            body { padding: 20px 15px; }
+            h1 { font-size: 22px; }
+            .container { max-width: 100%; }
+            .stock-row { flex-wrap: wrap; }
+            .stock-row span { width: 70px; font-size: 13px; }
+            .stock-row input { width: 70px; }
+            #result .row { flex-direction: column; gap: 4px; }
+            #result .value { font-size: 15px; }
+            button { width: 100%; }
         }
     </style>
 </head>
@@ -110,9 +82,14 @@
             <div class="stock-row"><span>JEPQ</span><input type="number" id="ratio_jepq" value="20"></div>
             <div id="ratioSumDisplay" style="margin-top: 10px; font-weight: bold;">현재 합계: 100%</div>
 
-<div class="toggle">
+            <div class="toggle">
                 <input type="checkbox" id="reinvest" checked>
                 <label style="margin:0;">배당 재투자 (체크 시 ON)</label>
+            </div>
+
+            <div class="toggle">
+                <input type="checkbox" id="applyTax" checked>
+                <label style="margin:0;">세금 적용 (체크 시 ON)</label>
             </div>
 
             <button id="calcButton">계산하기</button>
@@ -125,42 +102,46 @@
             <div class="row"><span class="label">SCHD</span><span class="value">연평균 수익률 13.26% · 배당수익률 3.3% · 배당 매년 약 11%씩 성장</span></div>
             <div class="row"><span class="label">JEPI</span><span class="value">연평균 수익률 11.12% · 배당수익률 8.3% · 배당성장 없음(변동성 있음)</span></div>
             <div class="row"><span class="label">JEPQ</span><span class="value">연평균 수익률 16.31% · 배당수익률 11.1% · 배당성장 없음(변동성 있음)</span></div>
+
             <details style="margin-top: 15px;">
                 <summary style="cursor: pointer; font-weight: bold; padding: 8px 0;">자세히 보기 (계산 방식 안내)</summary>
                 <p style="font-size:13px; color:#555; line-height:1.6; margin-top: 10px;">
                     <b>1. 수익률 산출 방법</b><br>
-                    각 종목의 "연평균 수익률"은 ETF 출시일부터 현재까지의 총수익률(배당 재투자 포함) 기준입니다. 
-                    여기서 배당수익률을 따로 뺀 "순수 가격 상승분"만 매년 자산 성장에 반영하고, 
-                    배당은 별도로 계산해서 이중으로 더해지지 않게 처리했습니다.
-                    (예: SCHD 총수익 13.26% − 배당 3.3% ≈ 가격상승 9.96%)
+                    각 종목의 "연평균 수익률"은 ETF 출시일부터 현재까지의 총수익률(배당 재투자 포함) 기준입니다.
+                    여기서 배당수익률을 따로 뺀 "순수 가격 상승분"만 매년 자산 성장에 반영하고,
+                    배당은 최초 투자 원금 기준으로 별도 계산해서 이중으로 더해지지 않게 처리했습니다.
                     <br><br>
                     <b>2. 데이터 기간이 서로 다릅니다</b><br>
-                    S&P500(33년), 나스닥(27년), SCHD(15년), JEPI(6년), JEPQ(4년)로 기준 기간이 다릅니다. 
-                    기간이 짧은 종목(특히 JEPQ)은 최근 상승장의 영향을 더 크게 받았을 수 있어, 
+                    S&P500(33년), 나스닥(27년), SCHD(15년), JEPI(6년), JEPQ(4년)로 기준 기간이 다릅니다.
+                    기간이 짧은 종목(특히 JEPQ)은 최근 상승장의 영향을 더 크게 받았을 수 있어,
                     과거 평균이 미래에도 그대로 이어진다는 보장은 없습니다.
                     <br><br>
                     <b>3. 배당성장 반영 방식</b><br>
-                    SCHD는 매년 배당수익률 자체가 약 11%씩 늘어나는 것으로 계산합니다 (10년 평균 배당성장률 기준). 
-                    JEPI·JEPQ는 배당이 옵션 프리미엄에서 나오는 구조라 성장 개념이 없어, 
+                    SCHD는 매년 배당수익률 자체가 약 11%씩 늘어나는 것으로 계산합니다 (10년 평균 배당성장률 기준).
+                    JEPI·JEPQ는 배당이 옵션 프리미엄에서 나오는 구조라 성장 개념이 없어,
                     배당수익률을 처음 값으로 고정해서 계산합니다.
                     <br><br>
                     <b>4. 세금 계산 방식</b><br>
-                    배당소득세는 15%로 매년 배당금에서 원천징수됩니다 (한미 조세조약 기준). 
-                    최종 매도 시에는 투자 자산이 불어난 부분(매매차익)에 대해서만 
-                    연 250만원 공제 후 22% 양도소득세가 적용됩니다. 
-                    이미 받은 배당 현금은 매도 대상이 아니므로 양도소득세 계산에서 제외됩니다.
+                    "세금 적용"을 켜면, 배당소득세 15%가 매년 배당금에서 원천징수되고,
+                    매도 시에는 투자 자산이 불어난 부분(매매차익)에 대해 연 250만원 공제 후
+                    22% 양도소득세가 적용됩니다. 꺼두면 세금 없이 계산됩니다 (세전 비교용).
                     <br><br>
                     <b>5. 재투자 ON/OFF 차이</b><br>
                     재투자 ON: 세후 배당금이 매년 원금에 합쳐져서 복리로 불어납니다.<br>
                     재투자 OFF: 세후 배당금은 원금과 분리되어 현금으로 따로 쌓이고, 원금만 가격상승률로 불어납니다.
                     <br><br>
-                    <i>※ 이 계산은 과거 데이터 기반 추정이며, 실제 결과를 보장하지 않습니다. 
+                    <i>※ 이 계산은 과거 데이터 기반 추정이며, 실제 결과를 보장하지 않습니다.
                     실제 세금은 계좌 종류, 거주자 지위, 개인 상황에 따라 달라질 수 있습니다.</i>
                 </p>
             </details>
         </div>
 
         <div class="section" id="result" style="display:none;"></div>
+
+        <div class="section" id="chartSection">
+            <h3 style="margin-top:0;">연도별 자산 변화</h3>
+            <canvas id="growthChart"></canvas>
+        </div>
     </div>
 
     <script>
@@ -174,45 +155,42 @@
         };
 
         const TAX_RATE = 0.15;
+        let growthChartInstance = null;
 
         // 실시간 비중 합계 표시
-const ratioInputs = ["ratio_sp500", "ratio_nasdaq", "ratio_schd", "ratio_jepi", "ratio_jepq"];
-function updateRatioSum() {
-    let sum = 0;
-    ratioInputs.forEach(function(id) {
-        sum += parseFloat(document.getElementById(id).value) || 0;
-    });
-    const display = document.getElementById("ratioSumDisplay");
-    display.textContent = "현재 합계: " + sum + "%";
-    display.style.color = (sum === 100) ? "green" : "#c0392b";
-}
-ratioInputs.forEach(function(id) {
-    document.getElementById(id).addEventListener("input", updateRatioSum);
-});
-updateRatioSum();
+        const ratioInputs = ["ratio_sp500", "ratio_nasdaq", "ratio_schd", "ratio_jepi", "ratio_jepq"];
+        function updateRatioSum() {
+            let sum = 0;
+            ratioInputs.forEach(function(id) {
+                sum += parseFloat(document.getElementById(id).value) || 0;
+            });
+            const display = document.getElementById("ratioSumDisplay");
+            display.textContent = "현재 합계: " + sum + "%";
+            display.style.color = (sum === 100) ? "green" : "#c0392b";
+        }
+        ratioInputs.forEach(function(id) {
+            document.getElementById(id).addEventListener("input", updateRatioSum);
+        });
+        updateRatioSum();
 
-// 숫자에 콤마 자동 추가
-const totalAmountInput = document.getElementById("totalAmount");
-
-totalAmountInput.addEventListener("input", function() {
-    // 콤마 다 지우고 숫자만 남기기
-    let rawValue = this.value.replace(/,/g, "");
-    
-    // 숫자가 아닌 문자 제거
-    rawValue = rawValue.replace(/[^0-9]/g, "");
-    
-    // 다시 콤마 넣어서 보여주기
-    if (rawValue) {
-        this.value = parseInt(rawValue).toLocaleString();
-    } else {
-        this.value = "";
-    }
-});
+        // 숫자에 콤마 자동 추가
+        const totalAmountInput = document.getElementById("totalAmount");
+        totalAmountInput.addEventListener("input", function() {
+            let rawValue = this.value.replace(/,/g, "");
+            rawValue = rawValue.replace(/[^0-9]/g, "");
+            if (rawValue) {
+                this.value = parseInt(rawValue).toLocaleString();
+            } else {
+                this.value = "";
+            }
+        });
 
         document.getElementById("calcButton").addEventListener("click", function() {
             const totalAmount = parseFloat(document.getElementById("totalAmount").value.replace(/,/g, ""));
             const years = parseInt(document.getElementById("years").value);
             const reinvest = document.getElementById("reinvest").checked;
+            const applyTax = document.getElementById("applyTax").checked;
+            const taxRate = applyTax ? TAX_RATE : 0;
 
             const ratios = {
                 sp500: parseFloat(document.getElementById("ratio_sp500").value) / 100,
@@ -228,19 +206,26 @@ totalAmountInput.addEventListener("input", function() {
                 return;
             }
 
+            // 연도별(0년차 = 투자 시작 시점 포함) 통합 자산/누적배당 배열
+            const yearlyAsset = new Array(years + 1).fill(0);
+            const yearlyDividendCum = new Array(years + 1).fill(0);
+            yearlyAsset[0] = totalAmount;
+
             let totalAsset = 0;
             let totalCashDividend = 0;
             let lastYearDividend = 0;
 
             for (const key in stocks) {
-    let principal = totalAmount * ratios[key];
-    const originalAllocation = principal; // 배당 계산 기준이 되는 고정 원금
-    let currentYield = stocks[key].yieldStart;
-    let cashPile = 0;
+                let principal = totalAmount * ratios[key];
+                const originalAllocation = principal; // 배당 계산 기준이 되는 고정 원금
+                let currentYield = stocks[key].yieldStart;
+                let cashPile = 0;
+                let cumulativeDividend = 0;
 
                 for (let y = 0; y < years; y++) {
                     const dividend = originalAllocation * currentYield;
-                    const afterTaxDividend = dividend * (1 - TAX_RATE);
+                    const afterTaxDividend = dividend * (1 - taxRate);
+                    cumulativeDividend += afterTaxDividend;
 
                     if (reinvest) {
                         principal += afterTaxDividend;
@@ -250,6 +235,9 @@ totalAmountInput.addEventListener("input", function() {
 
                     principal *= (1 + stocks[key].growth);
                     currentYield *= (1 + stocks[key].yieldGrowth);
+
+                    yearlyAsset[y + 1] += principal + cashPile;
+                    yearlyDividendCum[y + 1] += cumulativeDividend;
 
                     if (y === years - 1) {
                         lastYearDividend += afterTaxDividend;
@@ -262,9 +250,8 @@ totalAmountInput.addEventListener("input", function() {
 
             const finalTotal = totalAsset + totalCashDividend;
 
-            // 매도 시 양도소득세 계산 (투자 자산 부분만 해당, 이미 받은 현금 배당은 제외)
             const capitalGain = Math.max(0, totalAsset - totalAmount);
-            const taxableGain = Math.max(0, capitalGain - 2500000);
+            const taxableGain = applyTax ? Math.max(0, capitalGain - 2500000) : 0;
             const capitalGainsTax = taxableGain * 0.22;
             const netAfterSale = finalTotal - capitalGainsTax;
 
@@ -277,7 +264,73 @@ totalAmountInput.addEventListener("input", function() {
                 <div class="row"><span class="label">매도 시 예상 양도소득세</span><span class="value">${Math.round(capitalGainsTax).toLocaleString()}원</span></div>
                 <div class="row"><span class="label">전량 매도 시 실수령액</span><span class="value">${Math.round(netAfterSale).toLocaleString()}원</span></div>
             `;
+
+            drawChart(yearlyAsset, yearlyDividendCum, totalAmount, years);
         });
+
+        function drawChart(yearlyAsset, yearlyDividendCum, totalAmount, years) {
+            const chartSection = document.getElementById("chartSection");
+            chartSection.style.display = "block";
+
+            const labels = [];
+            for (let y = 0; y <= years; y++) labels.push(y + "년");
+
+            const principalLine = new Array(years + 1).fill(totalAmount);
+
+            const ctx = document.getElementById("growthChart").getContext("2d");
+
+            if (growthChartInstance) {
+                growthChartInstance.destroy();
+            }
+
+            growthChartInstance = new Chart(ctx, {
+                type: "line",
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: "총 자산",
+                            data: yearlyAsset,
+                            borderColor: "#8a7a5c",
+                            backgroundColor: "rgba(138,122,92,0.12)",
+                            fill: true,
+                            tension: 0.2
+                        },
+                        {
+                            label: "누적 배당금",
+                            data: yearlyDividendCum,
+                            borderColor: "#c0392b",
+                            backgroundColor: "rgba(192,57,43,0.05)",
+                            fill: false,
+                            tension: 0.2
+                        },
+                        {
+                            label: "투자 원금",
+                            data: principalLine,
+                            borderColor: "#999999",
+                            borderDash: [6, 4],
+                            fill: false,
+                            pointRadius: 0
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: "bottom" }
+                    },
+                    scales: {
+                        y: {
+                            ticks: {
+                                callback: function (value) {
+                                    return Number(value).toLocaleString() + "원";
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
     </script>
 </body>
 </html>

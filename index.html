@@ -28,9 +28,102 @@
             border: 1px solid #ccc;
             box-sizing: border-box;
         }
-        .stock-row { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
-        .stock-row span { width: 90px; font-size: 14px; }
-        .stock-row input { width: 80px; }
+        .category-title {
+            margin-top: 20px;
+            margin-bottom: 6px;
+            font-size: 14px;
+            font-weight: bold;
+            color: #8a7a5c;
+            border-bottom: 1px solid #ddd2ba;
+            padding-bottom: 4px;
+        }
+        .stock-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+        .stock-row span { flex: 1; font-size: 13px; display: flex; align-items: center; }
+        .stock-row span b { font-size: 14px; margin-right: 4px; }
+        .stock-row input { width: 70px; flex-shrink: 0; }
+        .remove-btn {
+            flex-shrink: 0;
+            width: 26px;
+            height: 26px;
+            padding: 0;
+            margin: 0;
+            background-color: #e0d3c3;
+            color: #6b5b42;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 13px;
+            line-height: 1;
+        }
+        .remove-btn:hover { background-color: #d3c2ab; }
+
+        .info-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background-color: #c9bda3;
+            color: white;
+            font-size: 10px;
+            font-weight: bold;
+            margin-left: 5px;
+            position: relative;
+            cursor: default;
+            flex-shrink: 0;
+        }
+        .info-icon .tooltip-text {
+            visibility: hidden;
+            opacity: 0;
+            transition: opacity 0.15s;
+            position: absolute;
+            bottom: 130%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #333;
+            color: white;
+            padding: 8px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            line-height: 1.5;
+            white-space: nowrap;
+            z-index: 20;
+        }
+        .info-icon:hover .tooltip-text,
+        .info-icon:focus .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .search-wrapper { position: relative; margin-top: 8px; }
+        #etfSearchResults {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            margin-top: 4px;
+            max-height: 220px;
+            overflow-y: auto;
+            z-index: 30;
+        }
+        .search-result-item {
+            padding: 8px 10px;
+            font-size: 13px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+        }
+        .search-result-item:last-child { border-bottom: none; }
+        .search-result-item:hover { background-color: #f0ebe1; }
+        .search-result-item b { margin-right: 4px; }
+        .search-result-item .cat-tag { color: #999; font-size: 11px; margin-left: 6px; }
+
+        .period-note { font-size: 12px; color: #999; margin-top: 4px; }
+
         button {
             margin-top: 20px;
             padding: 12px 20px;
@@ -54,9 +147,7 @@
             body { padding: 20px 15px; }
             h1 { font-size: 22px; }
             .container { max-width: 100%; }
-            .stock-row { flex-wrap: wrap; }
-            .stock-row span { width: 70px; font-size: 13px; }
-            .stock-row input { width: 70px; }
+            .stock-row input { width: 60px; }
             #result .row { flex-direction: column; gap: 4px; }
             #result .value { font-size: 15px; }
             button { width: 100%; }
@@ -73,13 +164,17 @@
 
             <label>투자 기간 (년)</label>
             <input type="number" id="years" value="10">
+            <div class="period-note">※ 대부분의 종목 데이터가 과거 10년 평균을 기준으로 산출되어, 10년 이상의 투자 기간을 권장합니다.</div>
 
-            <label>종목별 투자 비중 (%, 합계 100)</label>
-            <div class="stock-row"><span>S&P500</span><input type="number" id="ratio_sp500" value="20"></div>
-            <div class="stock-row"><span>나스닥</span><input type="number" id="ratio_nasdaq" value="20"></div>
-            <div class="stock-row"><span>SCHD</span><input type="number" id="ratio_schd" value="20"></div>
-            <div class="stock-row"><span>JEPI</span><input type="number" id="ratio_jepi" value="20"></div>
-            <div class="stock-row"><span>JEPQ</span><input type="number" id="ratio_jepq" value="20"></div>
+            <label>종목 추가</label>
+            <div class="search-wrapper">
+                <input type="text" id="etfSearchInput" placeholder="티커 또는 이름으로 검색 (예: VOO, 나스닥)">
+                <div id="etfSearchResults"></div>
+            </div>
+
+            <label>선택한 종목별 투자 비중 (%, 합계 100)</label>
+            <div id="ratioRows"></div>
+
             <div id="ratioSumDisplay" style="margin-top: 10px; font-weight: bold;">현재 합계: 100%</div>
 
             <div class="toggle">
@@ -87,44 +182,33 @@
                 <label style="margin:0;">배당 재투자 (체크 시 ON)</label>
             </div>
 
-            <div class="toggle">
-                <input type="checkbox" id="applyTax" checked>
-                <label style="margin:0;">세금 적용 (체크 시 ON)</label>
-            </div>
-
             <button id="calcButton">계산하기</button>
         </div>
 
         <div class="section">
-            <h3 style="margin-top:0;">종목별 정보</h3>
-            <div class="row"><span class="label">S&P500</span><span class="value">연평균 수익률 10.76% · 배당수익률 1.1% · 배당성장 없음</span></div>
-            <div class="row"><span class="label">나스닥</span><span class="value">연평균 수익률 10.75% · 배당수익률 0.4% · 배당성장 없음</span></div>
-            <div class="row"><span class="label">SCHD</span><span class="value">연평균 수익률 13.26% · 배당수익률 3.3% · 배당 매년 약 11%씩 성장</span></div>
-            <div class="row"><span class="label">JEPI</span><span class="value">연평균 수익률 11.12% · 배당수익률 8.3% · 배당성장 없음(변동성 있음)</span></div>
-            <div class="row"><span class="label">JEPQ</span><span class="value">연평균 수익률 16.31% · 배당수익률 11.1% · 배당성장 없음(변동성 있음)</span></div>
-
-            <details style="margin-top: 15px;">
+            <h3 style="margin-top:0;">계산 방식 안내</h3>
+            <details>
                 <summary style="cursor: pointer; font-weight: bold; padding: 8px 0;">자세히 보기 (계산 방식 안내)</summary>
                 <p style="font-size:13px; color:#555; line-height:1.6; margin-top: 10px;">
                     <b>1. 수익률 산출 방법</b><br>
-                    각 종목의 "연평균 수익률"은 ETF 출시일부터 현재까지의 총수익률(배당 재투자 포함) 기준입니다.
-                    여기서 배당수익률을 따로 뺀 "순수 가격 상승분"만 매년 자산 성장에 반영하고,
-                    배당은 최초 투자 원금 기준으로 별도 계산해서 이중으로 더해지지 않게 처리했습니다.
+                    각 종목의 "가격 상승률"은 10년 연평균 가격 CAGR(배당 제외, 순수 시세 상승분) 기준입니다.
+                    최근 상장되어 10년 데이터가 없는 일부 종목(QQQM, JEPI, JEPQ 등)은 상장 이후 실제 기간
+                    기준의 연평균 가격 상승률을 대신 사용했습니다.
                     <br><br>
-                    <b>2. 데이터 기간이 서로 다릅니다</b><br>
-                    S&P500(33년), 나스닥(27년), SCHD(15년), JEPI(6년), JEPQ(4년)로 기준 기간이 다릅니다.
-                    기간이 짧은 종목(특히 JEPQ)은 최근 상승장의 영향을 더 크게 받았을 수 있어,
-                    과거 평균이 미래에도 그대로 이어진다는 보장은 없습니다.
+                    <b>2. 배당은 최초 투자 원금 기준으로 계산</b><br>
+                    배당수익률은 매년 불어나는 평가금액이 아니라 "최초 투자한 원금"에 곱해서 계산합니다.
+                    이렇게 해야 가격 상승분과 배당이 이중으로 겹쳐 계산되는 걸 방지할 수 있습니다.
                     <br><br>
                     <b>3. 배당성장 반영 방식</b><br>
-                    SCHD는 매년 배당수익률 자체가 약 11%씩 늘어나는 것으로 계산합니다 (10년 평균 배당성장률 기준).
-                    JEPI·JEPQ는 배당이 옵션 프리미엄에서 나오는 구조라 성장 개념이 없어,
-                    배당수익률을 처음 값으로 고정해서 계산합니다.
+                    배당성장주(SCHD, VIG 등)는 매년 배당수익률 자체가 표에 나온 배당성장률만큼 늘어나는 것으로
+                    계산합니다. 커버드콜 상품(JEPI, JEPQ, XYLD, QYLD)은 배당이 옵션 프리미엄 구조에서 나와
+                    성장 개념이 없어 배당수익률을 고정값으로 계산합니다. 채권·금·인버스 상품도 배당성장 없이
+                    고정값을 사용합니다.
                     <br><br>
                     <b>4. 세금 계산 방식</b><br>
-                    "세금 적용"을 켜면, 배당소득세 15%가 매년 배당금에서 원천징수되고,
-                    매도 시에는 투자 자산이 불어난 부분(매매차익)에 대해 연 250만원 공제 후
-                    22% 양도소득세가 적용됩니다. 꺼두면 세금 없이 계산됩니다 (세전 비교용).
+                    배당소득세 15%가 매년 배당금에서 자동으로 원천징수되고, 매도 시에는 투자 자산이 불어난
+                    부분(매매차익)에 대해 연 250만원 공제 후 22% 양도소득세가 적용됩니다. 세금은 항상
+                    계산에 포함되며, 결과는 세후 기준입니다.
                     <br><br>
                     <b>5. 재투자 ON/OFF 차이</b><br>
                     재투자 ON: 세후 배당금이 매년 원금에 합쳐져서 복리로 불어납니다.<br>
@@ -145,37 +229,212 @@
     </div>
 
     <script>
-        // 종목별 데이터: 가격상승률(순수), 시작 배당수익률, 배당 연 성장률
-        const stocks = {
-            sp500:  { growth: 0.0966, yieldStart: 0.011, yieldGrowth: 0 },
-            nasdaq: { growth: 0.1035, yieldStart: 0.004, yieldGrowth: 0 },
-            schd:   { growth: 0.0996, yieldStart: 0.033, yieldGrowth: 0.11 },
-            jepi:   { growth: 0.028,  yieldStart: 0.083, yieldGrowth: 0 },
-            jepq:   { growth: 0.052,  yieldStart: 0.111, yieldGrowth: 0 }
-        };
+        // ETF 데이터 (10년 가격 CAGR 기준, 없는 종목은 상장 이후 실제 기간 CAGR로 대체)
+        // growth / yieldStart / yieldGrowth는 전부 소수(예: 13.5% -> 0.135)로 저장
+        const ETF_DATA = [
+            { category: "S&P500", ticker: "SPY",  name: "SPDR S&P 500 ETF Trust",        growth: 0.135,  yieldStart: 0.0105, yieldGrowth: 0.055 },
+            { category: "S&P500", ticker: "VOO",  name: "Vanguard S&P 500 ETF",           growth: 0.135,  yieldStart: 0.012,  yieldGrowth: 0.058 },
+            { category: "S&P500", ticker: "IVV",  name: "iShares Core S&P 500 ETF",       growth: 0.135,  yieldStart: 0.012,  yieldGrowth: 0.058 },
+            { category: "S&P500", ticker: "SPLG", name: "SPDR Portfolio S&P 500 ETF",     growth: 0.135,  yieldStart: 0.012,  yieldGrowth: 0.058 },
+
+            { category: "나스닥", ticker: "QQQ",  name: "Invesco QQQ Trust",              growth: 0.186,  yieldStart: 0.0044, yieldGrowth: 0.125 },
+            { category: "나스닥", ticker: "QQQM", name: "Invesco NASDAQ 100 ETF",         growth: 0.1545, yieldStart: 0.0044, yieldGrowth: 0.125 },
+            { category: "나스닥", ticker: "ONEQ", name: "Fidelity NASDAQ Composite ETF",  growth: 0.165,  yieldStart: 0.0035, yieldGrowth: 0.11 },
+
+            { category: "배당성장", ticker: "SCHD", name: "Schwab U.S. Dividend Equity ETF",   growth: 0.124, yieldStart: 0.036, yieldGrowth: 0.11 },
+            { category: "배당성장", ticker: "VIG",  name: "Vanguard Dividend Appreciation ETF", growth: 0.128, yieldStart: 0.017, yieldGrowth: 0.146 },
+            { category: "배당성장", ticker: "DGRO", name: "iShares Core Dividend Growth ETF",   growth: 0.115, yieldStart: 0.021, yieldGrowth: 0.0475 },
+            { category: "배당성장", ticker: "NOBL", name: "ProShares S&P500 Div Aristocrats",   growth: 0.102, yieldStart: 0.016, yieldGrowth: 0.06 },
+            { category: "배당성장", ticker: "SDY",  name: "SPDR S&P Dividend ETF",              growth: 0.095, yieldStart: 0.023, yieldGrowth: 0.05 },
+
+            { category: "고배당", ticker: "VYM",  name: "Vanguard High Dividend Yield ETF", growth: 0.12,  yieldStart: 0.026, yieldGrowth: 0.065 },
+            { category: "고배당", ticker: "HDV",  name: "iShares Core High Dividend ETF",   growth: 0.105, yieldStart: 0.035, yieldGrowth: 0.052 },
+            { category: "고배당", ticker: "SPYD", name: "SPDR Portfolio S&P500 High Div",   growth: 0.098, yieldStart: 0.042, yieldGrowth: 0.018 },
+            { category: "고배당", ticker: "SCHX", name: "Schwab U.S. Large-Cap ETF",        growth: 0.132, yieldStart: 0.013, yieldGrowth: 0.06 },
+
+            { category: "커버드콜", ticker: "JEPI", name: "JPMorgan Equity Premium Income ETF",       growth: 0.0191, yieldStart: 0.0755, yieldGrowth: 0 },
+            { category: "커버드콜", ticker: "JEPQ", name: "JPMorgan Nasdaq Equity Premium Income ETF", growth: 0.0093, yieldStart: 0.0885, yieldGrowth: 0 },
+            { category: "커버드콜", ticker: "XYLD", name: "Global X S&P 500 Covered Call ETF",         growth: 0.075,  yieldStart: 0.095,  yieldGrowth: 0 },
+            { category: "커버드콜", ticker: "QYLD", name: "Global X NASDAQ 100 Covered Call ETF",      growth: 0.075,  yieldStart: 0.112,  yieldGrowth: 0 },
+
+            { category: "채권", ticker: "BND", name: "Vanguard Total Bond Market ETF",   growth: 0.012, yieldStart: 0.038, yieldGrowth: 0 },
+            { category: "채권", ticker: "AGG", name: "iShares Core U.S. Aggregate Bond", growth: 0.015, yieldStart: 0.035, yieldGrowth: 0 },
+            { category: "채권", ticker: "TLT", name: "iShares 20+ Year Treasury Bond",   growth: 0.018, yieldStart: 0.042, yieldGrowth: 0 },
+            { category: "채권", ticker: "LQD", name: "iShares iBoxx Inv Grade Corp Bond",growth: 0.025, yieldStart: 0.045, yieldGrowth: 0 },
+
+            { category: "리츠", ticker: "VNQ",  name: "Vanguard Real Estate ETF",       growth: 0.055, yieldStart: 0.035, yieldGrowth: 0.03 },
+            { category: "리츠", ticker: "IYR",  name: "iShares U.S. Real Estate ETF",   growth: 0.052, yieldStart: 0.032, yieldGrowth: 0.025 },
+            { category: "리츠", ticker: "SCHH", name: "Schwab U.S. REIT ETF",           growth: 0.058, yieldStart: 0.038, yieldGrowth: 0.02 },
+
+            { category: "금", ticker: "GLD", name: "SPDR Gold Shares",     growth: 0.065, yieldStart: 0, yieldGrowth: 0 },
+            { category: "금", ticker: "IAU", name: "iShares Gold Trust",   growth: 0.063, yieldStart: 0, yieldGrowth: 0 },
+
+            { category: "레버리지", ticker: "SSO",  name: "ProShares Ultra S&P 500",     growth: 0.185, yieldStart: 0.003, yieldGrowth: 0.05 },
+            { category: "레버리지", ticker: "UPRO", name: "ProShares UltraPro S&P 500",  growth: 0.22,  yieldStart: 0.002, yieldGrowth: 0.04 },
+            { category: "레버리지", ticker: "TQQQ", name: "ProShares UltraPro QQQ",      growth: 0.285, yieldStart: 0.001, yieldGrowth: 0.06 },
+
+            { category: "인버스", ticker: "SH",   name: "ProShares Short S&P 500",           growth: -0.125, yieldStart: 0, yieldGrowth: 0 },
+            { category: "인버스", ticker: "PSQ",  name: "ProShares Short QQQ",                growth: -0.15,  yieldStart: 0, yieldGrowth: 0 },
+            { category: "인버스", ticker: "SPXU", name: "ProShares UltraPro Short S&P 500",   growth: -0.35,  yieldStart: 0, yieldGrowth: 0 }
+        ];
+
+        // 처음 화면에 기본으로 선택되어 있을 종목과 비중 (합계 100%)
+        const DEFAULT_TICKERS = { VOO: 40, QQQM: 30, SCHD: 30 };
 
         const TAX_RATE = 0.15;
         let growthChartInstance = null;
 
-        // 실시간 비중 합계 표시
-        const ratioInputs = ["ratio_sp500", "ratio_nasdaq", "ratio_schd", "ratio_jepi", "ratio_jepq"];
+        // 티커로 바로 찾아볼 수 있게 맵 형태로도 준비
+        const ETF_BY_TICKER = {};
+        ETF_DATA.forEach(function (etf) { ETF_BY_TICKER[etf.ticker] = etf; });
+
+        // 현재 계산에 포함된(선택된) 티커 목록
+        let selectedTickers = Object.keys(DEFAULT_TICKERS);
+
+        const ratioRowsContainer = document.getElementById("ratioRows");
+
+        function tooltipText(etf) {
+            return etf.name + "\n연평균 가격 CAGR " + (etf.growth * 100).toFixed(1) +
+                "%\n현재 배당수익률 " + (etf.yieldStart * 100).toFixed(2) +
+                "%\n배당성장률(연) " + (etf.yieldGrowth * 100).toFixed(1) + "%";
+        }
+
+        function renderRatioRows() {
+            const previousValues = {};
+            selectedTickers.forEach(function (ticker) {
+                const el = document.getElementById("ratio_" + ticker);
+                if (el) previousValues[ticker] = el.value;
+            });
+
+            ratioRowsContainer.innerHTML = "";
+
+            selectedTickers.forEach(function (ticker) {
+                const etf = ETF_BY_TICKER[ticker];
+                if (!etf) return;
+
+                const row = document.createElement("div");
+                row.className = "stock-row";
+
+                const label = document.createElement("span");
+                const tooltipLines = tooltipText(etf).split("\n").join("<br>");
+                label.innerHTML =
+                    "<b>" + etf.ticker + "</b> " + etf.name +
+                    '<span class="info-icon" tabindex="0">?<span class="tooltip-text">' + tooltipLines + "</span></span>";
+
+                const input = document.createElement("input");
+                input.type = "number";
+                input.id = "ratio_" + ticker;
+                input.value = (ticker in previousValues) ? previousValues[ticker] : (DEFAULT_TICKERS[ticker] || 0);
+                input.addEventListener("input", updateRatioSum);
+
+                const removeBtn = document.createElement("button");
+                removeBtn.type = "button";
+                removeBtn.className = "remove-btn";
+                removeBtn.textContent = "✕";
+                removeBtn.addEventListener("click", function () {
+                    selectedTickers = selectedTickers.filter(function (t) { return t !== ticker; });
+                    renderRatioRows();
+                    updateRatioSum();
+                });
+
+                row.appendChild(label);
+                row.appendChild(input);
+                row.appendChild(removeBtn);
+                ratioRowsContainer.appendChild(row);
+            });
+
+            if (selectedTickers.length === 0) {
+                const empty = document.createElement("div");
+                empty.style.fontSize = "13px";
+                empty.style.color = "#999";
+                empty.textContent = "위 검색창에서 종목을 추가해주세요.";
+                ratioRowsContainer.appendChild(empty);
+            }
+        }
+
+        function addTicker(ticker) {
+            if (!ETF_BY_TICKER[ticker]) return;
+            if (selectedTickers.indexOf(ticker) !== -1) return;
+            selectedTickers.push(ticker);
+            renderRatioRows();
+            updateRatioSum();
+        }
+
+        // ---- 종목 검색 ----
+        const searchInput = document.getElementById("etfSearchInput");
+        const searchResults = document.getElementById("etfSearchResults");
+
+        searchInput.addEventListener("input", function () {
+            const query = searchInput.value.trim().toLowerCase();
+            searchResults.innerHTML = "";
+
+            if (!query) {
+                searchResults.style.display = "none";
+                return;
+            }
+
+            const matches = ETF_DATA.filter(function (etf) {
+                return selectedTickers.indexOf(etf.ticker) === -1 &&
+                    (etf.ticker.toLowerCase().includes(query) || etf.name.toLowerCase().includes(query) || etf.category.toLowerCase().includes(query));
+            }).slice(0, 8);
+
+            if (matches.length === 0) {
+                searchResults.style.display = "none";
+                return;
+            }
+
+            matches.forEach(function (etf) {
+                const item = document.createElement("div");
+                item.className = "search-result-item";
+                item.innerHTML = "<b>" + etf.ticker + "</b>" + etf.name + '<span class="cat-tag">' + etf.category + "</span>";
+                item.addEventListener("click", function () {
+                    addTicker(etf.ticker);
+                    searchInput.value = "";
+                    searchResults.style.display = "none";
+                });
+                searchResults.appendChild(item);
+            });
+
+            searchResults.style.display = "block";
+        });
+
+        searchInput.addEventListener("keydown", function (e) {
+            if (e.key === "Enter") {
+                const exact = ETF_DATA.find(function (etf) {
+                    return etf.ticker.toLowerCase() === searchInput.value.trim().toLowerCase();
+                });
+                if (exact) {
+                    addTicker(exact.ticker);
+                    searchInput.value = "";
+                    searchResults.style.display = "none";
+                }
+            }
+        });
+
+        document.addEventListener("click", function (e) {
+            if (e.target !== searchInput) {
+                searchResults.style.display = "none";
+            }
+        });
+
+        // ---- 실시간 비중 합계 표시 ----
         function updateRatioSum() {
             let sum = 0;
-            ratioInputs.forEach(function(id) {
-                sum += parseFloat(document.getElementById(id).value) || 0;
+            selectedTickers.forEach(function (ticker) {
+                const el = document.getElementById("ratio_" + ticker);
+                if (el) sum += parseFloat(el.value) || 0;
             });
             const display = document.getElementById("ratioSumDisplay");
             display.textContent = "현재 합계: " + sum + "%";
             display.style.color = (sum === 100) ? "green" : "#c0392b";
         }
-        ratioInputs.forEach(function(id) {
-            document.getElementById(id).addEventListener("input", updateRatioSum);
-        });
+
+        renderRatioRows();
         updateRatioSum();
 
-        // 숫자에 콤마 자동 추가
+        // ---- 숫자에 콤마 자동 추가 ----
         const totalAmountInput = document.getElementById("totalAmount");
-        totalAmountInput.addEventListener("input", function() {
+        totalAmountInput.addEventListener("input", function () {
             let rawValue = this.value.replace(/,/g, "");
             rawValue = rawValue.replace(/[^0-9]/g, "");
             if (rawValue) {
@@ -185,28 +444,25 @@
             }
         });
 
-        document.getElementById("calcButton").addEventListener("click", function() {
+        // ---- 계산하기 ----
+        document.getElementById("calcButton").addEventListener("click", function () {
             const totalAmount = parseFloat(document.getElementById("totalAmount").value.replace(/,/g, ""));
             const years = parseInt(document.getElementById("years").value);
             const reinvest = document.getElementById("reinvest").checked;
-            const applyTax = document.getElementById("applyTax").checked;
-            const taxRate = applyTax ? TAX_RATE : 0;
 
-            const ratios = {
-                sp500: parseFloat(document.getElementById("ratio_sp500").value) / 100,
-                nasdaq: parseFloat(document.getElementById("ratio_nasdaq").value) / 100,
-                schd: parseFloat(document.getElementById("ratio_schd").value) / 100,
-                jepi: parseFloat(document.getElementById("ratio_jepi").value) / 100,
-                jepq: parseFloat(document.getElementById("ratio_jepq").value) / 100
-            };
-
-            const ratioSum = Object.values(ratios).reduce((a, b) => a + b, 0);
-            if (Math.abs(ratioSum - 1) > 0.01) {
+            let ratioSum = 0;
+            selectedTickers.forEach(function (ticker) {
+                ratioSum += parseFloat(document.getElementById("ratio_" + ticker).value) || 0;
+            });
+            if (selectedTickers.length === 0) {
+                alert("계산할 종목을 먼저 검색해서 추가해주세요.");
+                return;
+            }
+            if (Math.abs(ratioSum - 100) > 1) {
                 alert("종목 비중의 합이 100%가 되어야 합니다.");
                 return;
             }
 
-            // 연도별(0년차 = 투자 시작 시점 포함) 통합 자산/누적배당 배열
             const yearlyAsset = new Array(years + 1).fill(0);
             const yearlyDividendCum = new Array(years + 1).fill(0);
             yearlyAsset[0] = totalAmount;
@@ -215,16 +471,20 @@
             let totalCashDividend = 0;
             let lastYearDividend = 0;
 
-            for (const key in stocks) {
-                let principal = totalAmount * ratios[key];
+            selectedTickers.forEach(function (ticker) {
+                const etf = ETF_BY_TICKER[ticker];
+                const ratio = (parseFloat(document.getElementById("ratio_" + ticker).value) || 0) / 100;
+                if (ratio === 0) return;
+
+                let principal = totalAmount * ratio;
                 const originalAllocation = principal; // 배당 계산 기준이 되는 고정 원금
-                let currentYield = stocks[key].yieldStart;
+                let currentYield = etf.yieldStart;
                 let cashPile = 0;
                 let cumulativeDividend = 0;
 
                 for (let y = 0; y < years; y++) {
                     const dividend = originalAllocation * currentYield;
-                    const afterTaxDividend = dividend * (1 - taxRate);
+                    const afterTaxDividend = dividend * (1 - TAX_RATE);
                     cumulativeDividend += afterTaxDividend;
 
                     if (reinvest) {
@@ -233,8 +493,8 @@
                         cashPile += afterTaxDividend;
                     }
 
-                    principal *= (1 + stocks[key].growth);
-                    currentYield *= (1 + stocks[key].yieldGrowth);
+                    principal *= (1 + etf.growth);
+                    currentYield *= (1 + etf.yieldGrowth);
 
                     yearlyAsset[y + 1] += principal + cashPile;
                     yearlyDividendCum[y + 1] += cumulativeDividend;
@@ -246,12 +506,12 @@
 
                 totalAsset += principal;
                 totalCashDividend += cashPile;
-            }
+            });
 
             const finalTotal = totalAsset + totalCashDividend;
 
             const capitalGain = Math.max(0, totalAsset - totalAmount);
-            const taxableGain = applyTax ? Math.max(0, capitalGain - 2500000) : 0;
+            const taxableGain = Math.max(0, capitalGain - 2500000);
             const capitalGainsTax = taxableGain * 0.22;
             const netAfterSale = finalTotal - capitalGainsTax;
 

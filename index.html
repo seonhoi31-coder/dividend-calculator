@@ -159,8 +159,11 @@
         <h1>미국 ETF 계산기</h1>
 
         <div class="section">
-            <label>총 투자 금액 (원)</label>
+            <label>초기 투자 금액 (원)</label>
             <input type="text" id="totalAmount" value="10,000,000">
+
+            <label>매달 추가 적립금 (원, 없으면 0)</label>
+            <input type="text" id="monthlyAmount" value="500,000">
 
             <label>투자 기간 (년)</label>
             <input type="number" id="years" value="10">
@@ -211,8 +214,18 @@
                     계산에 포함되며, 결과는 세후 기준입니다.
                     <br><br>
                     <b>5. 재투자 ON/OFF 차이</b><br>
-                    재투자 ON: 세후 배당금이 매년 원금에 합쳐져서 복리로 불어납니다.<br>
-                    재투자 OFF: 세후 배당금은 원금과 분리되어 현금으로 따로 쌓이고, 원금만 가격상승률로 불어납니다.
+                    재투자 ON: 세후 배당금이 적립금 쪽에 합쳐져서 매달 복리로 불어납니다.<br>
+                    재투자 OFF: 세후 배당금은 현금으로 따로 쌓이고, 더 이상 불어나지 않습니다.
+                    <br><br>
+                    <b>6. 초기 목돈과 매달 적립금은 계산 방식이 다릅니다</b><br>
+                    초기 목돈은 1년에 한 번(연 복리)으로 계산하고, 매달 넣는 적립금과 재투자된 배당금은
+                    매달(월 복리)로 계산합니다. 목돈은 한 번에 들어와 오래 굴러가는 성격이고, 적립금은
+                    매달 새로 들어오는 성격이라 각각 실제 투자 흐름에 가깝게 나눠서 계산했습니다.
+                    <br><br>
+                    <b>7. 배당은 종목별 실제 지급월에만 들어옵니다</b><br>
+                    월배당 상품(JEPI, JEPQ, XYLD, QYLD, 채권류)은 매달, 분기배당 상품은 보통 3·6·9·12월에
+                    (SPY는 1·4·7·10월), 금·인버스 상품은 배당 없이 계산합니다. 투자는 1월에 시작하는 것으로
+                    가정합니다.
                     <br><br>
                     <i>※ 이 계산은 과거 데이터 기반 추정이며, 실제 결과를 보장하지 않습니다.
                     실제 세금은 계좌 종류, 거주자 지위, 개인 상황에 따라 달라질 수 있습니다.</i>
@@ -232,50 +245,50 @@
         // ETF 데이터 (10년 가격 CAGR 기준, 없는 종목은 상장 이후 실제 기간 CAGR로 대체)
         // growth / yieldStart / yieldGrowth는 전부 소수(예: 13.5% -> 0.135)로 저장
         const ETF_DATA = [
-            { category: "S&P500", ticker: "SPY",  name: "SPDR S&P 500 ETF Trust",        growth: 0.135,  yieldStart: 0.0105, yieldGrowth: 0.055 },
-            { category: "S&P500", ticker: "VOO",  name: "Vanguard S&P 500 ETF",           growth: 0.135,  yieldStart: 0.012,  yieldGrowth: 0.058 },
-            { category: "S&P500", ticker: "IVV",  name: "iShares Core S&P 500 ETF",       growth: 0.135,  yieldStart: 0.012,  yieldGrowth: 0.058 },
-            { category: "S&P500", ticker: "SPLG", name: "SPDR Portfolio S&P 500 ETF",     growth: 0.135,  yieldStart: 0.012,  yieldGrowth: 0.058 },
+            { category: "S&P500", ticker: "SPY",  name: "SPDR S&P 500 ETF Trust",        growth: 0.135,  yieldStart: 0.0105, yieldGrowth: 0.055, payoutMonths: [1,4,7,10] },
+            { category: "S&P500", ticker: "VOO",  name: "Vanguard S&P 500 ETF",           growth: 0.135,  yieldStart: 0.012,  yieldGrowth: 0.058, payoutMonths: [3,6,9,12] },
+            { category: "S&P500", ticker: "IVV",  name: "iShares Core S&P 500 ETF",       growth: 0.135,  yieldStart: 0.012,  yieldGrowth: 0.058, payoutMonths: [3,6,9,12] },
+            { category: "S&P500", ticker: "SPLG", name: "SPDR Portfolio S&P 500 ETF",     growth: 0.135,  yieldStart: 0.012,  yieldGrowth: 0.058, payoutMonths: [3,6,9,12] },
 
-            { category: "나스닥", ticker: "QQQ",  name: "Invesco QQQ Trust",              growth: 0.186,  yieldStart: 0.0044, yieldGrowth: 0.125 },
-            { category: "나스닥", ticker: "QQQM", name: "Invesco NASDAQ 100 ETF",         growth: 0.1545, yieldStart: 0.0044, yieldGrowth: 0.125 },
-            { category: "나스닥", ticker: "ONEQ", name: "Fidelity NASDAQ Composite ETF",  growth: 0.165,  yieldStart: 0.0035, yieldGrowth: 0.11 },
+            { category: "나스닥", ticker: "QQQ",  name: "Invesco QQQ Trust",              growth: 0.186,  yieldStart: 0.0044, yieldGrowth: 0.125, payoutMonths: [3,6,9,12] },
+            { category: "나스닥", ticker: "QQQM", name: "Invesco NASDAQ 100 ETF",         growth: 0.1545, yieldStart: 0.0044, yieldGrowth: 0.125, payoutMonths: [3,6,9,12] },
+            { category: "나스닥", ticker: "ONEQ", name: "Fidelity NASDAQ Composite ETF",  growth: 0.165,  yieldStart: 0.0035, yieldGrowth: 0.11,  payoutMonths: [3,6,9,12] },
 
-            { category: "배당성장", ticker: "SCHD", name: "Schwab U.S. Dividend Equity ETF",   growth: 0.124, yieldStart: 0.036, yieldGrowth: 0.11 },
-            { category: "배당성장", ticker: "VIG",  name: "Vanguard Dividend Appreciation ETF", growth: 0.128, yieldStart: 0.017, yieldGrowth: 0.146 },
-            { category: "배당성장", ticker: "DGRO", name: "iShares Core Dividend Growth ETF",   growth: 0.115, yieldStart: 0.021, yieldGrowth: 0.0475 },
-            { category: "배당성장", ticker: "NOBL", name: "ProShares S&P500 Div Aristocrats",   growth: 0.102, yieldStart: 0.016, yieldGrowth: 0.06 },
-            { category: "배당성장", ticker: "SDY",  name: "SPDR S&P Dividend ETF",              growth: 0.095, yieldStart: 0.023, yieldGrowth: 0.05 },
+            { category: "배당성장", ticker: "SCHD", name: "Schwab U.S. Dividend Equity ETF",   growth: 0.124, yieldStart: 0.036, yieldGrowth: 0.11,   payoutMonths: [3,6,9,12] },
+            { category: "배당성장", ticker: "VIG",  name: "Vanguard Dividend Appreciation ETF", growth: 0.128, yieldStart: 0.017, yieldGrowth: 0.146,  payoutMonths: [3,6,9,12] },
+            { category: "배당성장", ticker: "DGRO", name: "iShares Core Dividend Growth ETF",   growth: 0.115, yieldStart: 0.021, yieldGrowth: 0.0475, payoutMonths: [3,6,9,12] },
+            { category: "배당성장", ticker: "NOBL", name: "ProShares S&P500 Div Aristocrats",   growth: 0.102, yieldStart: 0.016, yieldGrowth: 0.06,   payoutMonths: [3,6,9,12] },
+            { category: "배당성장", ticker: "SDY",  name: "SPDR S&P Dividend ETF",              growth: 0.095, yieldStart: 0.023, yieldGrowth: 0.05,   payoutMonths: [3,6,9,12] },
 
-            { category: "고배당", ticker: "VYM",  name: "Vanguard High Dividend Yield ETF", growth: 0.12,  yieldStart: 0.026, yieldGrowth: 0.065 },
-            { category: "고배당", ticker: "HDV",  name: "iShares Core High Dividend ETF",   growth: 0.105, yieldStart: 0.035, yieldGrowth: 0.052 },
-            { category: "고배당", ticker: "SPYD", name: "SPDR Portfolio S&P500 High Div",   growth: 0.098, yieldStart: 0.042, yieldGrowth: 0.018 },
-            { category: "고배당", ticker: "SCHX", name: "Schwab U.S. Large-Cap ETF",        growth: 0.132, yieldStart: 0.013, yieldGrowth: 0.06 },
+            { category: "고배당", ticker: "VYM",  name: "Vanguard High Dividend Yield ETF", growth: 0.12,  yieldStart: 0.026, yieldGrowth: 0.065, payoutMonths: [3,6,9,12] },
+            { category: "고배당", ticker: "HDV",  name: "iShares Core High Dividend ETF",   growth: 0.105, yieldStart: 0.035, yieldGrowth: 0.052, payoutMonths: [3,6,9,12] },
+            { category: "고배당", ticker: "SPYD", name: "SPDR Portfolio S&P500 High Div",   growth: 0.098, yieldStart: 0.042, yieldGrowth: 0.018, payoutMonths: [3,6,9,12] },
+            { category: "고배당", ticker: "SCHX", name: "Schwab U.S. Large-Cap ETF",        growth: 0.132, yieldStart: 0.013, yieldGrowth: 0.06,  payoutMonths: [3,6,9,12] },
 
-            { category: "커버드콜", ticker: "JEPI", name: "JPMorgan Equity Premium Income ETF",       growth: 0.0191, yieldStart: 0.0755, yieldGrowth: 0 },
-            { category: "커버드콜", ticker: "JEPQ", name: "JPMorgan Nasdaq Equity Premium Income ETF", growth: 0.0093, yieldStart: 0.0885, yieldGrowth: 0 },
-            { category: "커버드콜", ticker: "XYLD", name: "Global X S&P 500 Covered Call ETF",         growth: 0.075,  yieldStart: 0.095,  yieldGrowth: 0 },
-            { category: "커버드콜", ticker: "QYLD", name: "Global X NASDAQ 100 Covered Call ETF",      growth: 0.075,  yieldStart: 0.112,  yieldGrowth: 0 },
+            { category: "커버드콜", ticker: "JEPI", name: "JPMorgan Equity Premium Income ETF",       growth: 0.0191, yieldStart: 0.0755, yieldGrowth: 0, payoutMonths: [1,2,3,4,5,6,7,8,9,10,11,12] },
+            { category: "커버드콜", ticker: "JEPQ", name: "JPMorgan Nasdaq Equity Premium Income ETF", growth: 0.0093, yieldStart: 0.0885, yieldGrowth: 0, payoutMonths: [1,2,3,4,5,6,7,8,9,10,11,12] },
+            { category: "커버드콜", ticker: "XYLD", name: "Global X S&P 500 Covered Call ETF",         growth: 0.075,  yieldStart: 0.095,  yieldGrowth: 0, payoutMonths: [1,2,3,4,5,6,7,8,9,10,11,12] },
+            { category: "커버드콜", ticker: "QYLD", name: "Global X NASDAQ 100 Covered Call ETF",      growth: 0.075,  yieldStart: 0.112,  yieldGrowth: 0, payoutMonths: [1,2,3,4,5,6,7,8,9,10,11,12] },
 
-            { category: "채권", ticker: "BND", name: "Vanguard Total Bond Market ETF",   growth: 0.012, yieldStart: 0.038, yieldGrowth: 0 },
-            { category: "채권", ticker: "AGG", name: "iShares Core U.S. Aggregate Bond", growth: 0.015, yieldStart: 0.035, yieldGrowth: 0 },
-            { category: "채권", ticker: "TLT", name: "iShares 20+ Year Treasury Bond",   growth: 0.018, yieldStart: 0.042, yieldGrowth: 0 },
-            { category: "채권", ticker: "LQD", name: "iShares iBoxx Inv Grade Corp Bond",growth: 0.025, yieldStart: 0.045, yieldGrowth: 0 },
+            { category: "채권", ticker: "BND", name: "Vanguard Total Bond Market ETF",   growth: 0.012, yieldStart: 0.038, yieldGrowth: 0, payoutMonths: [1,2,3,4,5,6,7,8,9,10,11,12] },
+            { category: "채권", ticker: "AGG", name: "iShares Core U.S. Aggregate Bond", growth: 0.015, yieldStart: 0.035, yieldGrowth: 0, payoutMonths: [1,2,3,4,5,6,7,8,9,10,11,12] },
+            { category: "채권", ticker: "TLT", name: "iShares 20+ Year Treasury Bond",   growth: 0.018, yieldStart: 0.042, yieldGrowth: 0, payoutMonths: [1,2,3,4,5,6,7,8,9,10,11,12] },
+            { category: "채권", ticker: "LQD", name: "iShares iBoxx Inv Grade Corp Bond",growth: 0.025, yieldStart: 0.045, yieldGrowth: 0, payoutMonths: [1,2,3,4,5,6,7,8,9,10,11,12] },
 
-            { category: "리츠", ticker: "VNQ",  name: "Vanguard Real Estate ETF",       growth: 0.055, yieldStart: 0.035, yieldGrowth: 0.03 },
-            { category: "리츠", ticker: "IYR",  name: "iShares U.S. Real Estate ETF",   growth: 0.052, yieldStart: 0.032, yieldGrowth: 0.025 },
-            { category: "리츠", ticker: "SCHH", name: "Schwab U.S. REIT ETF",           growth: 0.058, yieldStart: 0.038, yieldGrowth: 0.02 },
+            { category: "리츠", ticker: "VNQ",  name: "Vanguard Real Estate ETF",       growth: 0.055, yieldStart: 0.035, yieldGrowth: 0.03,  payoutMonths: [3,6,9,12] },
+            { category: "리츠", ticker: "IYR",  name: "iShares U.S. Real Estate ETF",   growth: 0.052, yieldStart: 0.032, yieldGrowth: 0.025, payoutMonths: [3,6,9,12] },
+            { category: "리츠", ticker: "SCHH", name: "Schwab U.S. REIT ETF",           growth: 0.058, yieldStart: 0.038, yieldGrowth: 0.02,  payoutMonths: [3,6,9,12] },
 
-            { category: "금", ticker: "GLD", name: "SPDR Gold Shares",     growth: 0.065, yieldStart: 0, yieldGrowth: 0 },
-            { category: "금", ticker: "IAU", name: "iShares Gold Trust",   growth: 0.063, yieldStart: 0, yieldGrowth: 0 },
+            { category: "금", ticker: "GLD", name: "SPDR Gold Shares",     growth: 0.065, yieldStart: 0, yieldGrowth: 0, payoutMonths: [] },
+            { category: "금", ticker: "IAU", name: "iShares Gold Trust",   growth: 0.063, yieldStart: 0, yieldGrowth: 0, payoutMonths: [] },
 
-            { category: "레버리지", ticker: "SSO",  name: "ProShares Ultra S&P 500",     growth: 0.185, yieldStart: 0.003, yieldGrowth: 0.05 },
-            { category: "레버리지", ticker: "UPRO", name: "ProShares UltraPro S&P 500",  growth: 0.22,  yieldStart: 0.002, yieldGrowth: 0.04 },
-            { category: "레버리지", ticker: "TQQQ", name: "ProShares UltraPro QQQ",      growth: 0.285, yieldStart: 0.001, yieldGrowth: 0.06 },
+            { category: "레버리지", ticker: "SSO",  name: "ProShares Ultra S&P 500",     growth: 0.185, yieldStart: 0.003, yieldGrowth: 0.05, payoutMonths: [3,6,9,12] },
+            { category: "레버리지", ticker: "UPRO", name: "ProShares UltraPro S&P 500",  growth: 0.22,  yieldStart: 0.002, yieldGrowth: 0.04, payoutMonths: [3,6,9,12] },
+            { category: "레버리지", ticker: "TQQQ", name: "ProShares UltraPro QQQ",      growth: 0.285, yieldStart: 0.001, yieldGrowth: 0.06, payoutMonths: [3,6,9,12] },
 
-            { category: "인버스", ticker: "SH",   name: "ProShares Short S&P 500",           growth: -0.125, yieldStart: 0, yieldGrowth: 0 },
-            { category: "인버스", ticker: "PSQ",  name: "ProShares Short QQQ",                growth: -0.15,  yieldStart: 0, yieldGrowth: 0 },
-            { category: "인버스", ticker: "SPXU", name: "ProShares UltraPro Short S&P 500",   growth: -0.35,  yieldStart: 0, yieldGrowth: 0 }
+            { category: "인버스", ticker: "SH",   name: "ProShares Short S&P 500",           growth: -0.125, yieldStart: 0, yieldGrowth: 0, payoutMonths: [] },
+            { category: "인버스", ticker: "PSQ",  name: "ProShares Short QQQ",                growth: -0.15,  yieldStart: 0, yieldGrowth: 0, payoutMonths: [] },
+            { category: "인버스", ticker: "SPXU", name: "ProShares UltraPro Short S&P 500",   growth: -0.35,  yieldStart: 0, yieldGrowth: 0, payoutMonths: [] }
         ];
 
         // 처음 화면에 기본으로 선택되어 있을 종목과 비중 (합계 100%)
@@ -293,10 +306,17 @@
 
         const ratioRowsContainer = document.getElementById("ratioRows");
 
+        function payoutLabel(etf) {
+            if (etf.payoutMonths.length === 0) return "배당 없음";
+            if (etf.payoutMonths.length === 12) return "매월 배당";
+            return etf.payoutMonths.join("·") + "월 (분기배당)";
+        }
+
         function tooltipText(etf) {
             return etf.name + "\n연평균 가격 CAGR " + (etf.growth * 100).toFixed(1) +
                 "%\n현재 배당수익률 " + (etf.yieldStart * 100).toFixed(2) +
-                "%\n배당성장률(연) " + (etf.yieldGrowth * 100).toFixed(1) + "%";
+                "%\n배당성장률(연) " + (etf.yieldGrowth * 100).toFixed(1) +
+                "%\n지급 주기: " + payoutLabel(etf);
         }
 
         function renderRatioRows() {
@@ -433,20 +453,25 @@
         updateRatioSum();
 
         // ---- 숫자에 콤마 자동 추가 ----
-        const totalAmountInput = document.getElementById("totalAmount");
-        totalAmountInput.addEventListener("input", function () {
-            let rawValue = this.value.replace(/,/g, "");
-            rawValue = rawValue.replace(/[^0-9]/g, "");
-            if (rawValue) {
-                this.value = parseInt(rawValue).toLocaleString();
-            } else {
-                this.value = "";
-            }
-        });
+        function attachCommaFormat(id) {
+            const el = document.getElementById(id);
+            el.addEventListener("input", function () {
+                let rawValue = this.value.replace(/,/g, "");
+                rawValue = rawValue.replace(/[^0-9]/g, "");
+                if (rawValue) {
+                    this.value = parseInt(rawValue).toLocaleString();
+                } else {
+                    this.value = "";
+                }
+            });
+        }
+        attachCommaFormat("totalAmount");
+        attachCommaFormat("monthlyAmount");
 
         // ---- 계산하기 ----
         document.getElementById("calcButton").addEventListener("click", function () {
-            const totalAmount = parseFloat(document.getElementById("totalAmount").value.replace(/,/g, ""));
+            const initialAmount = parseFloat(document.getElementById("totalAmount").value.replace(/,/g, "")) || 0;
+            const monthlyAmount = parseFloat(document.getElementById("monthlyAmount").value.replace(/,/g, "")) || 0;
             const years = parseInt(document.getElementById("years").value);
             const reinvest = document.getElementById("reinvest").checked;
 
@@ -463,54 +488,82 @@
                 return;
             }
 
+            const totalMonths = years * 12;
+
+            // 연도별(연말 시점) 통합 배열 — 그래프용
             const yearlyAsset = new Array(years + 1).fill(0);
             const yearlyDividendCum = new Array(years + 1).fill(0);
-            yearlyAsset[0] = totalAmount;
+            const yearlyPrincipal = new Array(years + 1).fill(0);
+            yearlyAsset[0] = initialAmount;
+            yearlyPrincipal[0] = initialAmount;
 
-            let totalAsset = 0;
-            let totalCashDividend = 0;
-            let lastYearDividend = 0;
+            let totalAsset = 0;        // 최종 시점 (목돈잔고+적립잔고) 합, 전 종목
+            let totalCashPile = 0;     // 재투자 OFF일 때 현금으로 쌓인 배당 합
+            let totalDividendEver = 0; // 지금까지 받은 배당 총액(세후), 전 종목
+            let lastYearDividend = 0;  // 마지막 12개월 동안 받은 배당 합, 전 종목
 
             selectedTickers.forEach(function (ticker) {
                 const etf = ETF_BY_TICKER[ticker];
                 const ratio = (parseFloat(document.getElementById("ratio_" + ticker).value) || 0) / 100;
                 if (ratio === 0) return;
 
-                let principal = totalAmount * ratio;
-                const originalAllocation = principal; // 배당 계산 기준이 되는 고정 원금
+                const monthlyGrowth = Math.pow(1 + etf.growth, 1 / 12) - 1;
+                const payoutsPerYear = etf.payoutMonths.length;
+
+                let lumpBalance = initialAmount * ratio;   // 목돈 몫 (연 복리)
+                let contribBalance = 0;                    // 적립금 + 재투자 배당 몫 (월 복리)
+                let cashPile = 0;                           // 재투자 OFF 시 쌓이는 현금
                 let currentYield = etf.yieldStart;
-                let cashPile = 0;
                 let cumulativeDividend = 0;
 
-                for (let y = 0; y < years; y++) {
-                    const dividend = originalAllocation * currentYield;
-                    const afterTaxDividend = dividend * (1 - TAX_RATE);
-                    cumulativeDividend += afterTaxDividend;
+                for (let m = 1; m <= totalMonths; m++) {
+                    const calendarMonth = ((m - 1) % 12) + 1;
 
-                    if (reinvest) {
-                        principal += afterTaxDividend;
-                    } else {
-                        cashPile += afterTaxDividend;
+                    // 1) 이번 달 적립
+                    contribBalance += monthlyAmount * ratio;
+
+                    // 2) 배당 지급월이면 배당 계산 (목돈+적립금 합계 기준, 현금화된 배당은 기준에서 제외)
+                    if (payoutsPerYear > 0 && etf.payoutMonths.indexOf(calendarMonth) !== -1) {
+                        const dividendBasis = lumpBalance + contribBalance;
+                        const dividend = dividendBasis * (currentYield / payoutsPerYear);
+                        const afterTaxDividend = dividend * (1 - TAX_RATE);
+                        cumulativeDividend += afterTaxDividend;
+
+                        if (reinvest) {
+                            contribBalance += afterTaxDividend; // 재투자 배당은 월복리 쪽으로 합류
+                        } else {
+                            cashPile += afterTaxDividend;
+                        }
+
+                        if (m > totalMonths - 12) {
+                            lastYearDividend += afterTaxDividend;
+                        }
                     }
 
-                    principal *= (1 + etf.growth);
-                    currentYield *= (1 + etf.yieldGrowth);
+                    // 3) 적립금 쪽은 매달 성장
+                    contribBalance *= (1 + monthlyGrowth);
 
-                    yearlyAsset[y + 1] += principal + cashPile;
-                    yearlyDividendCum[y + 1] += cumulativeDividend;
+                    // 4) 연말(12월)에만 목돈 성장 + 배당수익률 자체의 연간 성장 반영
+                    if (calendarMonth === 12) {
+                        lumpBalance *= (1 + etf.growth);
+                        currentYield *= (1 + etf.yieldGrowth);
 
-                    if (y === years - 1) {
-                        lastYearDividend += afterTaxDividend;
+                        const yearIndex = m / 12;
+                        yearlyAsset[yearIndex] += lumpBalance + contribBalance + cashPile;
+                        yearlyDividendCum[yearIndex] += cumulativeDividend;
+                        yearlyPrincipal[yearIndex] += initialAmount * ratio + monthlyAmount * ratio * m;
                     }
                 }
 
-                totalAsset += principal;
-                totalCashDividend += cashPile;
+                totalAsset += lumpBalance + contribBalance;
+                totalCashPile += cashPile;
+                totalDividendEver += cumulativeDividend;
             });
 
-            const finalTotal = totalAsset + totalCashDividend;
+            const finalTotal = totalAsset + totalCashPile;
+            const totalPrincipal = initialAmount + monthlyAmount * totalMonths;
 
-            const capitalGain = Math.max(0, totalAsset - totalAmount);
+            const capitalGain = Math.max(0, totalAsset - totalPrincipal);
             const taxableGain = Math.max(0, capitalGain - 2500000);
             const capitalGainsTax = taxableGain * 0.22;
             const netAfterSale = finalTotal - capitalGainsTax;
@@ -520,22 +573,21 @@
             resultDiv.innerHTML = `
                 <div class="row"><span class="label">${years}년 후 총 자산</span><span class="value">${Math.round(finalTotal).toLocaleString()}원</span></div>
                 <div class="row"><span class="label">마지막 해 예상 연 배당금 (세후)</span><span class="value">${Math.round(lastYearDividend).toLocaleString()}원</span></div>
-                <div class="row"><span class="label">투자 원금</span><span class="value">${Math.round(totalAmount).toLocaleString()}원</span></div>
+                <div class="row"><span class="label">지금까지 받은 총 배당금 (세후)</span><span class="value">${Math.round(totalDividendEver).toLocaleString()}원</span></div>
+                <div class="row"><span class="label">투자 원금 (초기+적립 합계)</span><span class="value">${Math.round(totalPrincipal).toLocaleString()}원</span></div>
                 <div class="row"><span class="label">매도 시 예상 양도소득세</span><span class="value">${Math.round(capitalGainsTax).toLocaleString()}원</span></div>
                 <div class="row"><span class="label">전량 매도 시 실수령액</span><span class="value">${Math.round(netAfterSale).toLocaleString()}원</span></div>
             `;
 
-            drawChart(yearlyAsset, yearlyDividendCum, totalAmount, years);
+            drawChart(yearlyAsset, yearlyDividendCum, yearlyPrincipal, years);
         });
 
-        function drawChart(yearlyAsset, yearlyDividendCum, totalAmount, years) {
+        function drawChart(yearlyAsset, yearlyDividendCum, yearlyPrincipal, years) {
             const chartSection = document.getElementById("chartSection");
             chartSection.style.display = "block";
 
             const labels = [];
             for (let y = 0; y <= years; y++) labels.push(y + "년");
-
-            const principalLine = new Array(years + 1).fill(totalAmount);
 
             const ctx = document.getElementById("growthChart").getContext("2d");
 
@@ -566,7 +618,7 @@
                         },
                         {
                             label: "투자 원금",
-                            data: principalLine,
+                            data: yearlyPrincipal,
                             borderColor: "#999999",
                             borderDash: [6, 4],
                             fill: false,

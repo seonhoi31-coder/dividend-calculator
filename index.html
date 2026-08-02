@@ -291,6 +291,18 @@
             .result-value { font-size: 14px; }
             .chart-header-row { flex-direction: column; align-items: flex-start; }
             #toggleTableBtn { width: 100%; }
+
+            /* 결과 요약 헤더가 세로로 쪼개져 보이던 문제 - 제목/버튼을 위아래로 쌓기 */
+            .result-header { flex-direction: column; align-items: stretch; gap: 10px; }
+            .info-btn { width: 100%; text-align: center; }
+
+            /* 계산 방식 모달 제목 줄바꿈이 단어 중간에서 끊기던 문제 */
+            .modal-header h3 { font-size: 16px; word-break: keep-all; overflow-wrap: break-word; line-height: 1.4; }
+            .modal-body { word-break: keep-all; overflow-wrap: break-word; }
+            .modal-box { padding: 16px; }
+
+            /* 그래프를 좀 더 크게, Y축 숫자는 억/천/만 단위로 간소화 */
+            #chartSection canvas { min-height: 320px; }
         }
     </style>
 </head>
@@ -974,6 +986,24 @@
             }
         });
 
+        // 모바일 화면에서만 쓰는 숫자 축약 표기 (PC는 기존 방식 그대로)
+        function formatKoreanShort(value) {
+            const isNegative = value < 0;
+            const abs = Math.abs(value);
+            let result;
+            if (abs >= 100000000) {
+                result = (abs / 100000000).toFixed(1) + "억";
+            } else if (abs >= 10000000) {
+                const num = abs / 10000000;
+                result = (Number.isInteger(num) ? num : num.toFixed(1)) + "천";
+            } else if (abs >= 10000) {
+                result = Math.round(abs / 10000) + "만";
+            } else {
+                result = abs.toLocaleString() + "원";
+            }
+            return (isNegative ? "-" : "") + result;
+        }
+
         function drawChart(yearlyAsset, yearlyDividendCum, yearlyPrincipal, years) {
             const chartSection = document.getElementById("chartSection");
             chartSection.style.display = "block";
@@ -986,6 +1016,8 @@
             if (growthChartInstance) {
                 growthChartInstance.destroy();
             }
+
+            const isMobile = window.innerWidth <= 600;
 
             growthChartInstance = new Chart(ctx, {
                 type: "line",
@@ -1018,21 +1050,24 @@
                         }
                     ]
                 },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: { position: "bottom" }
-                    },
-                    scales: {
-                        y: {
-                            ticks: {
-                                callback: function (value) {
-                                    return Number(value).toLocaleString() + "원";
+                options: Object.assign(
+                    {
+                        responsive: true,
+                        plugins: {
+                            legend: { position: "bottom" }
+                        },
+                        scales: {
+                            y: {
+                                ticks: {
+                                    callback: function (value) {
+                                        return isMobile ? formatKoreanShort(value) : (Number(value).toLocaleString() + "원");
+                                    }
                                 }
                             }
                         }
-                    }
-                }
+                    },
+                    isMobile ? { aspectRatio: 1.15 } : {}
+                )
             });
         }
     </script>

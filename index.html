@@ -1,23 +1,11 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8">
     <title>머니퓨처</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="배당금 계산과 투자 시뮬레이션을 한 번에 확인할 수 있는 머니퓨처 서비스입니다.">
-    <meta property="og:title" content="머니퓨처">
-    <meta property="og:description" content="배당 수익과 투자 시뮬레이션을 쉽게 확인해보세요.">
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://dividend-calculator.vercel.app/">
-    <meta property="og:image" content="https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=1200&h=630&q=80">
-    <meta property="og:image:width" content="1200">
-    <meta property="og:image:height" content="630">
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="머니퓨처">
-    <meta name="twitter:description" content="배당 수익과 투자 시뮬레이션을 쉽게 확인해보세요.">
-    <meta name="twitter:image" content="https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=1200&h=630&q=80">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
     <style>
+
         body {
             margin: 0;
             font-family: 'Georgia', serif;
@@ -321,11 +309,235 @@
             /* 그래프를 좀 더 크게, Y축 숫자는 억/천/만 단위로 간소화 */
             #chartSection canvas { min-height: 320px; }
         }
+    
+
+        /* ---- 세금계산기 전용 스타일 ---- */
+
+        body {
+            margin: 0;
+            font-family: 'Georgia', serif;
+            background-color: #faf7f2;
+            color: #2b2b2b;
+            padding: 40px 20px;
+        }
+        .container { max-width: 700px; margin: 0 auto; }
+        h1 { font-size: 26px; margin-bottom: 4px; }
+        h1 .subtitle { font-size: 14px; font-weight: normal; color: #8a7a5c; }
+        .intro { font-size: 13px; color: #777; margin: 0 0 25px 0; line-height: 1.6; }
+        .section {
+            background-color: #f0ebe1;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        label { display: block; margin-top: 14px; margin-bottom: 4px; font-size: 14px; }
+        label .hint { font-size: 11px; color: #999; font-weight: normal; }
+        input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+        }
+        button.calc-btn {
+            margin-top: 20px;
+            padding: 12px 20px;
+            background-color: #8a7a5c;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 15px;
+            width: 100%;
+        }
+        button.calc-btn:hover { background-color: #75674d; }
+
+        #result { display: none; }
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 14px;
+            gap: 10px;
+        }
+        .result-header h3 { margin: 0 0 4px 0; font-size: 17px; }
+        .result-header .result-sub { font-size: 12px; color: #888; margin: 0; }
+        .info-btn {
+            flex-shrink: 0;
+            margin: 0;
+            padding: 6px 10px;
+            font-size: 12px;
+            background-color: #e8e0d0;
+            color: #5c4f3a;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+        }
+        .info-btn:hover { background-color: #ddd2ba; }
+
+        .result-item-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 0;
+            border-bottom: 1px solid #e6ddc9;
+        }
+        .result-item-row:last-child { border-bottom: none; }
+        .result-icon {
+            flex-shrink: 0;
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+        .result-text { flex: 1; min-width: 0; }
+        .result-label { font-size: 13px; color: #555; }
+        .result-badge {
+            display: inline-block;
+            margin-top: 3px;
+            padding: 2px 8px;
+            font-size: 11px;
+            border-radius: 12px;
+            white-space: nowrap;
+        }
+        .result-value { font-weight: bold; font-size: 16px; white-space: nowrap; text-align: right; }
+        .result-value.total { color: #b23b3b; font-size: 19px; }
+
+        .separation-notice {
+            text-align: center;
+            padding: 20px 10px;
+        }
+        .separation-notice .big-check { font-size: 34px; margin-bottom: 10px; }
+        .separation-notice h3 { margin: 0 0 8px 0; }
+        .separation-notice p { font-size: 13px; color: #666; line-height: 1.6; }
+
+        .disclaimer {
+            margin-top: 16px;
+            padding: 12px 14px;
+            background-color: #fdf1de;
+            border-radius: 8px;
+            font-size: 12px;
+            color: #7a5c2e;
+            line-height: 1.6;
+        }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(0,0,0,0.4);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .modal-overlay.open { display: flex; }
+        .modal-box {
+            background-color: #faf7f2;
+            border-radius: 12px;
+            max-width: 560px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+            padding: 20px;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .modal-close {
+            margin: 0;
+            padding: 4px 10px;
+            background: none;
+            border: none;
+            color: #888;
+            font-size: 15px;
+            cursor: pointer;
+        }
+        .modal-body { font-size: 13px; color: #444; line-height: 1.7; }
+        .modal-body b { color: #5c4f3a; }
+        .modal-body .calc-block {
+            background-color: #f0ebe1;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+        }
+
+        @media (max-width: 600px) {
+            body { padding: 20px 15px; }
+            h1 { font-size: 22px; }
+            .container { max-width: 100%; }
+            .result-header { flex-direction: column; align-items: stretch; gap: 10px; }
+            .info-btn { width: 100%; text-align: center; }
+            .result-value { font-size: 14px; }
+            .modal-header h3 { font-size: 16px; word-break: keep-all; }
+            .modal-body { word-break: keep-all; }
+            .modal-box { padding: 16px; }
+        }
+    
+
+        /* ---- 상단 공용 네비게이션 ---- */
+        .topnav {
+            background-color: #ffffff;
+            border-bottom: 1px solid #e6ddc9;
+            margin-bottom: 30px;
+        }
+        .topnav-inner {
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 14px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .topnav-logo { font-weight: bold; font-size: 16px; color: #5c4f3a; white-space: nowrap; }
+        .topnav-links { display: flex; gap: 6px; flex-wrap: wrap; }
+        .topnav-links button {
+            margin: 0;
+            width: auto;
+            padding: 7px 14px;
+            background-color: transparent;
+            color: #8a7a5c;
+            border: none;
+            border-bottom: 2px solid transparent;
+            border-radius: 0;
+            cursor: pointer;
+            font-size: 14px;
+            font-family: 'Georgia', serif;
+        }
+        .topnav-links button:hover { color: #4caf7d; }
+        .topnav-links button.active { color: #4caf7d; border-bottom-color: #4caf7d; font-weight: bold; }
+        .view { display: none; }
+        .view.active { display: block; }
+        @media (max-width: 600px) {
+            .topnav-inner { flex-direction: column; align-items: flex-start; }
+            .topnav-links { width: 100%; justify-content: space-between; }
+            .topnav-links button { flex: 1; padding: 7px 6px; font-size: 13px; }
+        }
+
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>머니퓨처 <span style="font-size:14px; font-weight:normal; color:#8a7a5c;">미국 ETF 계산기</span></h1>
+    <nav class="topnav">
+        <div class="topnav-inner">
+            <div class="topnav-logo">💰 머니퓨처</div>
+            <div class="topnav-links">
+                <button type="button" class="nav-link active" data-view="future">미래자산 계산기</button>
+                <button type="button" class="nav-link" data-view="tax">세금계산기</button>
+            </div>
+        </div>
+    </nav>
+
+    <div id="view-future" class="view active">
+        <div class="container">
+        <h1>미래자산 계산기 <span style="font-size:14px; font-weight:normal; color:#8a7a5c;">미국 ETF 계산기</span></h1>
 
         <div class="section">
             <label>초기 투자 금액 (원)</label>
@@ -423,8 +635,55 @@
             <div id="calcDetailBody" class="modal-body"></div>
         </div>
     </div>
+    </div>
+
+    <div id="view-tax" class="view">
+        <div class="container">
+        <h1>세금계산기 <span class="subtitle">해외주식 배당 세금계산기</span></h1>
+        <p class="intro">
+            지금 받고 있는 배당금과 다른 소득을 입력하면, 올해 기준으로
+            추가로 납부해야 할 세금이 얼마인지 계산해드려요. 미래 예측이 아니라
+            현재 시점 기준 계산이에요.
+        </p>
+
+        <div class="section">
+            <label>이자소득 (연간, 없으면 0)</label>
+            <input type="text" id="interestIncome" value="0">
+
+            <label>미국주식 배당소득 (연간, 세전 <span class="hint">— 미국에서 15% 떼기 전 금액</span>)</label>
+            <input type="text" id="usDividend" value="30,000,000">
+
+            <label>근로소득 (총급여, 연간, 없으면 0)</label>
+            <input type="text" id="wageIncome" value="50,000,000">
+
+            <label>사업소득 (매출 − 필요경비, 연간, 없으면 0)</label>
+            <input type="text" id="businessIncome" value="0">
+
+            <label>기타소득 (연간, 없으면 0) <span class="hint">— 필요경비를 뺀 순소득으로 입력</span></label>
+            <input type="text" id="otherIncome" value="0">
+
+            <label>연금소득 (연간 총연금액, 없으면 0) <span class="hint">— 공제 전 총액을 그대로 입력하면 자동으로 연금소득공제가 적용돼요</span></label>
+            <input type="text" id="pensionIncome" value="0">
+
+            <button type="button" class="calc-btn" id="calcTaxBtn">세금 계산하기</button>
+        </div>
+
+        <div class="section" id="taxResult"></div>
+    </div>
+
+    <div id="taxCalcDetailOverlay" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3 style="margin:0;">이번 계산은 이렇게 나왔습니다</h3>
+                <button id="taxCloseDetailModal" type="button" class="modal-close">✕</button>
+            </div>
+            <div id="taxCalcDetailBody" class="modal-body"></div>
+        </div>
+    </div>
+    </div>
 
     <script>
+
         // ETF 데이터 (10년 가격 CAGR 기준, 없는 종목은 상장 이후 실제 기간 CAGR로 대체)
         // growth / yieldStart / yieldGrowth는 전부 소수(예: 13.5% -> 0.135)로 저장
         const ETF_DATA = [
@@ -1132,6 +1391,289 @@
                 )
             });
         }
+    
+
+        /* ==== 세금계산기 스크립트 ==== */
+
+        // ---- 숫자에 콤마 자동 추가 ----
+        ["interestIncome", "usDividend", "wageIncome", "businessIncome", "otherIncome", "pensionIncome"]
+            .forEach(attachCommaFormat);
+
+        function getAmount(id) {
+            return parseFloat(document.getElementById(id).value.replace(/,/g, "")) || 0;
+        }
+
+        // ---- 종합소득세 누진세율표 (2026년 기준) ----
+        const TAX_BRACKETS = [
+            { limit: 14000000, rate: 0.06, deduction: 0 },
+            { limit: 50000000, rate: 0.15, deduction: 1260000 },
+            { limit: 88000000, rate: 0.24, deduction: 5760000 },
+            { limit: 150000000, rate: 0.35, deduction: 15440000 },
+            { limit: 300000000, rate: 0.38, deduction: 19940000 },
+            { limit: 500000000, rate: 0.40, deduction: 25940000 },
+            { limit: 1000000000, rate: 0.42, deduction: 35940000 },
+            { limit: Infinity, rate: 0.45, deduction: 65940000 }
+        ];
+
+        function applyBracket(base) {
+            if (base <= 0) return 0;
+            for (let i = 0; i < TAX_BRACKETS.length; i++) {
+                if (base <= TAX_BRACKETS[i].limit) {
+                    return Math.max(0, base * TAX_BRACKETS[i].rate - TAX_BRACKETS[i].deduction);
+                }
+            }
+            return 0;
+        }
+
+        // ---- 근로소득공제 (2026년 기준, 5단계, 최대 2,000만원 한도) ----
+        function calcWageDeduction(wage) {
+            let deduction;
+            if (wage <= 5000000) {
+                deduction = wage * 0.70;
+            } else if (wage <= 15000000) {
+                deduction = 3500000 + (wage - 5000000) * 0.40;
+            } else if (wage <= 45000000) {
+                deduction = 7500000 + (wage - 15000000) * 0.15;
+            } else if (wage <= 100000000) {
+                deduction = 12000000 + (wage - 45000000) * 0.05;
+            } else {
+                deduction = 14750000 + (wage - 100000000) * 0.02;
+            }
+            return Math.min(deduction, 20000000);
+        }
+
+        // 연금소득공제 (소득세법 제47조의2 기준, 한도 900만원)
+        function calcPensionDeduction(totalPension) {
+            let deduction;
+            if (totalPension <= 3500000) {
+                deduction = totalPension;
+            } else if (totalPension <= 7000000) {
+                deduction = 3500000 + (totalPension - 3500000) * 0.40;
+            } else if (totalPension <= 14000000) {
+                deduction = 4900000 + (totalPension - 7000000) * 0.20;
+            } else {
+                deduction = 6300000 + (totalPension - 14000000) * 0.10;
+            }
+            return Math.min(deduction, 9000000);
+        }
+
+        const FINANCIAL_THRESHOLD = 20000000;
+        const FINANCIAL_FLAT_RATE = 0.14;
+        const US_WITHHOLDING_RATE = 0.15;
+        const BASIC_DEDUCTION = 1500000;
+        const STANDARD_TAX_CREDIT = 130000;
+
+        document.getElementById("calcTaxBtn").addEventListener("click", function () {
+            const interest = getAmount("interestIncome");
+            const usDividend = getAmount("usDividend");
+            const wage = getAmount("wageIncome");
+            const business = getAmount("businessIncome");
+            const other = getAmount("otherIncome");
+            const pension = getAmount("pensionIncome");
+
+            const financialTotal = interest + usDividend;
+            const usWithholding = usDividend * US_WITHHOLDING_RATE;
+
+            const resultDiv = document.getElementById("taxResult");
+            resultDiv.style.display = "block";
+
+            if (financialTotal <= FINANCIAL_THRESHOLD) {
+                resultDiv.innerHTML = `
+                    <div class="separation-notice">
+                        <div class="big-check">✅</div>
+                        <h3>분리과세로 이미 끝났습니다</h3>
+                        <p>
+                            금융소득(이자+배당) 합계 ${Math.round(financialTotal).toLocaleString()}원은
+                            2,000만원 이하라, 미국에서 원천징수된 세금(${Math.round(usWithholding).toLocaleString()}원)으로
+                            납세의무가 종결됩니다.<br>
+                            한국에서 이 배당 때문에 추가로 낼 세금은 없습니다.
+                        </p>
+                    </div>
+                    <div class="disclaimer">
+                        ※ 이 결과는 배당·이자소득만을 기준으로 한 판단입니다. 근로·사업소득 등 다른 소득은
+                        별도로 종합소득세 신고 대상일 수 있습니다.
+                    </div>
+                `;
+                return;
+            }
+
+            const wageDeduction = calcWageDeduction(wage);
+            const wageIncomeAmount = Math.max(0, wage - wageDeduction);
+            const pensionDeduction = calcPensionDeduction(pension);
+            const pensionIncomeAmount = Math.max(0, pension - pensionDeduction);
+            const otherComprehensive = wageIncomeAmount + business + other + pensionIncomeAmount;
+            const excessFinancial = financialTotal - FINANCIAL_THRESHOLD;
+
+            const baseA = Math.max(0, excessFinancial + otherComprehensive - BASIC_DEDUCTION);
+            const generalTax = FINANCIAL_THRESHOLD * FINANCIAL_FLAT_RATE + applyBracket(baseA);
+
+            const baseB = Math.max(0, otherComprehensive - BASIC_DEDUCTION);
+            const comparisonTax = financialTotal * FINANCIAL_FLAT_RATE + applyBracket(baseB);
+
+            const calculatedTax = Math.max(generalTax, comparisonTax);
+            const usedGeneral = generalTax >= comparisonTax;
+
+            const comprehensiveIncomeTotal = financialTotal + otherComprehensive;
+            const foreignCreditLimit = comprehensiveIncomeTotal > 0
+                ? calculatedTax * (usDividend / comprehensiveIncomeTotal)
+                : 0;
+            const foreignTaxCredit = Math.min(usWithholding, foreignCreditLimit);
+
+            const standardCredit = wage > 0 ? STANDARD_TAX_CREDIT : 0;
+
+            const decidedTax = Math.max(0, calculatedTax - foreignTaxCredit - standardCredit);
+            const localTax = calculatedTax * 0.10;
+            const totalBurden = decidedTax + localTax;
+
+            resultDiv.innerHTML = `
+                <div class="result-header">
+                    <div>
+                        <h3>계산 결과 요약</h3>
+                        <p class="result-sub">금융소득이 2,000만원을 초과해 종합과세 대상입니다.</p>
+                    </div>
+                    <button type="button" class="info-btn" id="taxOpenDetailModal">ℹ️ 계산 방식 자세히 보기</button>
+                </div>
+
+                <div class="result-item-row">
+                    <div class="result-icon" style="background:#e7f0e3;">📋</div>
+                    <div class="result-text">
+                        <div class="result-label">산출세액</div>
+                        <span class="result-badge" style="background:#e7f0e3; color:#3f6b34;">${usedGeneral ? "일반산출세액 적용" : "비교산출세액 적용"}</span>
+                    </div>
+                    <div class="result-value">${Math.round(calculatedTax).toLocaleString()}원</div>
+                </div>
+
+                <div class="result-item-row">
+                    <div class="result-icon" style="background:#e6edf7;">🌎</div>
+                    <div class="result-text">
+                        <div class="result-label">외국납부세액공제</div>
+                        <span class="result-badge" style="background:#e6edf7; color:#3a5a8c;">미국 원천징수 ${Math.round(usWithholding).toLocaleString()}원 중 공제</span>
+                    </div>
+                    <div class="result-value">-${Math.round(foreignTaxCredit).toLocaleString()}원</div>
+                </div>
+
+                <div class="result-item-row">
+                    <div class="result-icon" style="background:#f0e7f7;">🎟️</div>
+                    <div class="result-text">
+                        <div class="result-label">표준세액공제</div>
+                        <span class="result-badge" style="background:#f0e7f7; color:#6b4f96;">${wage > 0 ? "근로소득자 기준 적용" : "근로소득 없어 미적용"}</span>
+                    </div>
+                    <div class="result-value">-${Math.round(standardCredit).toLocaleString()}원</div>
+                </div>
+
+                <div class="result-item-row">
+                    <div class="result-icon" style="background:#fdf1de;">🧾</div>
+                    <div class="result-text">
+                        <div class="result-label">결정세액 (국세)</div>
+                    </div>
+                    <div class="result-value">${Math.round(decidedTax).toLocaleString()}원</div>
+                </div>
+
+                <div class="result-item-row">
+                    <div class="result-icon" style="background:#fdeaea;">🏛️</div>
+                    <div class="result-text">
+                        <div class="result-label">지방소득세</div>
+                        <span class="result-badge" style="background:#fdeaea; color:#b23b3b;">산출세액의 10%</span>
+                    </div>
+                    <div class="result-value">${Math.round(localTax).toLocaleString()}원</div>
+                </div>
+
+                <div class="result-item-row">
+                    <div class="result-icon" style="background:#f7e6ea;">💳</div>
+                    <div class="result-text">
+                        <div class="result-label">총 부담액 (국세+지방세)</div>
+                    </div>
+                    <div class="result-value total">${Math.round(totalBurden).toLocaleString()}원</div>
+                </div>
+
+                <div class="disclaimer">
+                    ※ 국민연금·건강보험·신용카드공제 등 개인별 소득·세액공제는 반영되지 않아 실제보다 세금이
+                    다소 높게 나올 수 있습니다. 표준세액공제는 근로소득자 기준 단순 추정입니다. 외국납부세액공제
+                    한도 초과분은 10년간 이월공제가 가능하지만 이 계산에는 반영되지 않았습니다.
+                    정확한 세액은 세무 전문가와 상담하세요.
+                </div>
+            `;
+
+            document.getElementById("taxOpenDetailModal").addEventListener("click", function () {
+                document.getElementById("taxCalcDetailOverlay").classList.add("open");
+            });
+
+            buildDetailModal({
+                interest, usDividend, wage, business, other, pension,
+                financialTotal, usWithholding, wageDeduction, wageIncomeAmount,
+                pensionDeduction, pensionIncomeAmount, otherComprehensive,
+                excessFinancial, baseA, generalTax, baseB, comparisonTax, calculatedTax, usedGeneral,
+                comprehensiveIncomeTotal, foreignCreditLimit, foreignTaxCredit, standardCredit,
+                decidedTax, localTax, totalBurden
+            });
+        });
+
+        function buildDetailModal(d) {
+            const body = document.getElementById("taxCalcDetailBody");
+            body.innerHTML = `
+                <div class="calc-block">
+                    <b>1. 금융소득 합계 확인</b><br>
+                    이자소득 ${Math.round(d.interest).toLocaleString()}원 + 미국배당(세전) ${Math.round(d.usDividend).toLocaleString()}원
+                    = <b>${Math.round(d.financialTotal).toLocaleString()}원</b> (2,000만원 초과 → 종합과세 대상)
+                </div>
+                <div class="calc-block">
+                    <b>2. 다른 종합소득 계산</b><br>
+                    근로소득공제 ${Math.round(d.wageDeduction).toLocaleString()}원을 뺀 근로소득금액
+                    ${Math.round(d.wageIncomeAmount).toLocaleString()}원 + 사업소득 ${Math.round(d.business).toLocaleString()}원
+                    + 기타소득 ${Math.round(d.other).toLocaleString()}원 + 연금소득공제
+                    ${Math.round(d.pensionDeduction).toLocaleString()}원을 뺀 연금소득금액
+                    ${Math.round(d.pensionIncomeAmount).toLocaleString()}원
+                    = <b>${Math.round(d.otherComprehensive).toLocaleString()}원</b>
+                </div>
+                <div class="calc-block">
+                    <b>3. 비교과세: 두 가지 방식 중 더 큰 금액 선택</b><br>
+                    일반산출세액 = 2,000만원×14% + (초과금융소득 ${Math.round(d.excessFinancial).toLocaleString()}원
+                    + 다른소득 − 기본공제150만원 = ${Math.round(d.baseA).toLocaleString()}원에 누진세율)
+                    = <b>${Math.round(d.generalTax).toLocaleString()}원</b><br>
+                    비교산출세액 = 금융소득 전체×14% + (다른소득 − 기본공제150만원 = ${Math.round(d.baseB).toLocaleString()}원에 누진세율)
+                    = <b>${Math.round(d.comparisonTax).toLocaleString()}원</b><br>
+                    → 둘 중 큰 값인 <b>${d.usedGeneral ? "일반산출세액" : "비교산출세액"} ${Math.round(d.calculatedTax).toLocaleString()}원</b>이 산출세액이 됩니다.
+                </div>
+                <div class="calc-block">
+                    <b>4. 외국납부세액공제</b><br>
+                    한도 = 산출세액 × (미국배당 ÷ 종합소득금액) = ${Math.round(d.calculatedTax).toLocaleString()}원 ×
+                    (${Math.round(d.usDividend).toLocaleString()}원 ÷ ${Math.round(d.comprehensiveIncomeTotal).toLocaleString()}원)
+                    = ${Math.round(d.foreignCreditLimit).toLocaleString()}원<br>
+                    미국에서 실제로 낸 세금 ${Math.round(d.usWithholding).toLocaleString()}원과 한도 중 작은 값인
+                    <b>${Math.round(d.foreignTaxCredit).toLocaleString()}원</b>을 공제합니다.
+                </div>
+                <div class="calc-block">
+                    <b>5. 표준세액공제 및 최종 세액</b><br>
+                    표준세액공제 ${Math.round(d.standardCredit).toLocaleString()}원까지 뺀 결정세액(국세)은
+                    <b>${Math.round(d.decidedTax).toLocaleString()}원</b>입니다.<br>
+                    지방소득세는 산출세액의 10%인 <b>${Math.round(d.localTax).toLocaleString()}원</b>입니다.
+                </div>
+                <div class="calc-block" style="margin-bottom:0;">
+                    <b>6. 총 부담액</b><br>
+                    결정세액 ${Math.round(d.decidedTax).toLocaleString()}원 + 지방소득세 ${Math.round(d.localTax).toLocaleString()}원
+                    = <b>${Math.round(d.totalBurden).toLocaleString()}원</b>
+                </div>
+            `;
+        }
+
+        document.getElementById("taxCloseDetailModal").addEventListener("click", function () {
+            document.getElementById("taxCalcDetailOverlay").classList.remove("open");
+        });
+        document.getElementById("taxCalcDetailOverlay").addEventListener("click", function (e) {
+            if (e.target === this) this.classList.remove("open");
+        });
+    
+
+        // ---- 상단 탭 전환 ----
+        document.querySelectorAll(".nav-link").forEach(function (btn) {
+            btn.addEventListener("click", function () {
+                document.querySelectorAll(".nav-link").forEach(function (b) { b.classList.remove("active"); });
+                document.querySelectorAll(".view").forEach(function (v) { v.classList.remove("active"); });
+                btn.classList.add("active");
+                document.getElementById("view-" + btn.dataset.view).classList.add("active");
+            });
+        });
+
     </script>
 </body>
 </html>

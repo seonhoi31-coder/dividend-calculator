@@ -130,8 +130,8 @@
         .stock-row input { width: 70px; flex-shrink: 0; }
         .remove-btn {
             flex-shrink: 0;
-            width: 26px;
-            height: 26px;
+            width: 44px;
+            height: 44px;
             padding: 0;
             margin: 0;
             background-color: #e0d3c3;
@@ -139,7 +139,7 @@
             border: none;
             border-radius: 50%;
             cursor: pointer;
-            font-size: 13px;
+            font-size: 15px;
             line-height: 1;
         }
         .remove-btn:hover { background-color: #d3c2ab; }
@@ -222,6 +222,7 @@
             font-size: 15px;
         }
         button:hover { background-color: #75674d; }
+        button:disabled { background-color: #cfc6b3; color: #8a8070; cursor: not-allowed; }
         .toggle { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
         #result { margin-top: 20px; transition: opacity 0.15s ease; }
         #result .row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #ddd2ba; }
@@ -713,6 +714,7 @@
                 <input type="checkbox" id="reinvest" checked>
                 <label style="margin:0;">배당 재투자 (체크 시 ON)</label>
             </div>
+            <div class="period-note">켜면 세후 배당금이 매달 자동으로 재투자되어 복리 효과가 커지고, 끄면 배당금은 현금으로 따로 쌓여요.</div>
 
             <button id="calcButton">계산하기</button>
         </div>
@@ -769,7 +771,7 @@
                 <h3 style="margin:0;">연도별 자산 변화</h3>
                 <button id="toggleTableBtn" type="button">데이터 표로 보기</button>
             </div>
-            <canvas id="growthChart"></canvas>
+            <canvas id="growthChart" role="img"></canvas>
             <div id="yearlyTableWrap" style="display:none;"></div>
         </div>
     </div>
@@ -1131,6 +1133,9 @@
             const display = document.getElementById("ratioSumDisplay");
             display.textContent = "현재 합계: " + sum + "%";
             display.style.color = (sum === 100) ? "green" : "#c0392b";
+
+            const isValid = selectedTickers.length > 0 && sum === 100;
+            document.getElementById("calcButton").disabled = !isValid;
         }
 
         renderRatioRows();
@@ -1159,19 +1164,6 @@
             const years = parseInt(document.getElementById("years").value);
             const reinvest = document.getElementById("reinvest").checked;
 
-            let ratioSum = 0;
-            selectedTickers.forEach(function (ticker) {
-                ratioSum += parseFloat(document.getElementById("ratio_" + ticker).value) || 0;
-            });
-            if (selectedTickers.length === 0) {
-                alert("계산할 종목을 먼저 검색해서 추가해주세요.");
-                return;
-            }
-            if (Math.abs(ratioSum - 100) > 1) {
-                alert("종목 비중의 합이 100%가 되어야 합니다.");
-                return;
-            }
-
             currentInputs = { initialAmount, monthlyAmount, years, reinvest };
             scenarioData = {
                 pessimistic: simulateScenario(0.8, initialAmount, monthlyAmount, years, reinvest),
@@ -1179,6 +1171,9 @@
                 optimistic: simulateScenario(1.2, initialAmount, monthlyAmount, years, reinvest)
             };
             renderScenario("base");
+
+            // 결과 영역으로 부드럽게 스크롤 (시나리오 버튼 전환 시에는 스크롤하지 않음)
+            document.getElementById("result").scrollIntoView({ behavior: "smooth", block: "start" });
         });
 
         // ---- 종목별 시뮬레이션: growthMultiplier로 비관(0.8)/기본(1.0)/낙관(1.2) 시나리오를 계산 ----
@@ -1572,7 +1567,20 @@
             const labels = [];
             for (let y = 0; y <= years; y++) labels.push(y + "년");
 
-            const ctx = document.getElementById("growthChart").getContext("2d");
+            const canvasEl = document.getElementById("growthChart");
+            const ctx = canvasEl.getContext("2d");
+
+            // 스크린 리더용 동적 요약 (매 계산/시나리오 전환마다 실제 숫자로 갱신)
+            const finalAsset = yearlyAsset[years];
+            const finalPrincipal = yearlyPrincipal[years];
+            const finalDividendCum = yearlyDividendCum[years];
+            const growthPct = finalPrincipal > 0 ? ((finalAsset / finalPrincipal - 1) * 100) : 0;
+            canvasEl.setAttribute("aria-label",
+                years + "년간 자산 변화 그래프. 투자원금 " + Math.round(finalPrincipal).toLocaleString() +
+                "원에서 시작해 " + years + "년 후 총자산 " + Math.round(finalAsset).toLocaleString() +
+                "원(원금 대비 " + growthPct.toFixed(1) + "% 증가)이 되고, 그동안 누적 배당금은 " +
+                Math.round(finalDividendCum).toLocaleString() + "원입니다."
+            );
 
             if (growthChartInstance) {
                 growthChartInstance.destroy();

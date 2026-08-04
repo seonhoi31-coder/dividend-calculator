@@ -381,6 +381,7 @@
             #result .row { flex-direction: column; gap: 4px; }
             #result .value { font-size: 15px; }
             button { width: 100%; }
+            .quick-btn { width: auto; padding: 4px 8px; font-size: 11px; }
             .result-value { font-size: 14px; }
             .chart-header-row { flex-direction: column; align-items: flex-start; }
             #toggleTableBtn { width: 100%; }
@@ -697,11 +698,6 @@
     <div id="view-future" class="view active">
         <div class="container">
         <h2>미래자산 계산기 <span style="font-size:14px; font-weight:normal; color:#8a7a5c;">미국 ETF 계산기</span></h2>
-        <p class="intro">
-            예시: 초기 1,000만원 + 매달 50만원씩 VOO 40%·QQQM 30%·SCHD 30%에
-            배당 재투자를 켠 채로 10년 투자하면 어떻게 되는지, 아래 기본값 그대로
-            계산해볼 수 있어요.
-        </p>
 
         <div class="section">
             <label>초기 투자 금액 (원)</label>
@@ -823,9 +819,7 @@
         <p class="intro">
             지금 받고 있는 배당금과 다른 소득을 입력하면, 올해 기준으로
             추가로 납부해야 할 세금이 얼마인지 계산해드려요. 미래 예측이 아니라
-            현재 시점 기준 계산이에요.<br>
-            예시: 근로소득 5,000만원 + 미국배당 3,000만원인 직장인 기준으로
-            아래 기본값이 채워져 있어요.
+            현재 시점 기준 계산이에요.
         </p>
 
         <div class="section">

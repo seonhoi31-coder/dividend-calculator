@@ -637,6 +637,25 @@
             margin: 0 0 16px 0;
         }
 
+        /* ---- 낙관/비관 시나리오 토글 ---- */
+        .scenario-toggle { display: flex; gap: 4px; }
+        .scenario-btn {
+            margin: 0;
+            padding: 5px 10px;
+            font-size: 12px;
+            background-color: #f0ebe1;
+            color: #8a7a5c;
+            border: 1px solid #d9cdb3;
+            border-radius: 20px;
+            cursor: pointer;
+        }
+        .scenario-btn.active { background-color: #8a7a5c; color: #fff; border-color: #8a7a5c; font-weight: bold; }
+        .scenario-note { font-size: 11px; color: #999; margin: 0 0 14px 0; line-height: 1.6; }
+        @media (max-width: 600px) {
+            .scenario-toggle { justify-content: space-between; width: 100%; }
+            .scenario-btn { flex: 1; }
+        }
+
     </style>
 </head>
 <body>
@@ -1146,6 +1165,18 @@
                 return;
             }
 
+            currentInputs = { initialAmount, monthlyAmount, years, reinvest };
+            scenarioData = {
+                pessimistic: simulateScenario(0.8, initialAmount, monthlyAmount, years, reinvest),
+                base: simulateScenario(1.0, initialAmount, monthlyAmount, years, reinvest),
+                optimistic: simulateScenario(1.2, initialAmount, monthlyAmount, years, reinvest)
+            };
+            renderScenario("base");
+        });
+
+        // ---- 종목별 시뮬레이션: growthMultiplier로 비관(0.8)/기본(1.0)/낙관(1.2) 시나리오를 계산 ----
+        // 가격상승률(growth)에만 배율을 곱함 — 배당수익률·배당성장률은 시나리오 간 동일하게 유지
+        function simulateScenario(growthMultiplier, initialAmount, monthlyAmount, years, reinvest) {
             const totalMonths = years * 12;
 
             // 연도별(연말 시점) 통합 배열 — 그래프/표용
@@ -1167,10 +1198,11 @@
                 const ratio = (parseFloat(document.getElementById("ratio_" + ticker).value) || 0) / 100;
                 if (ratio === 0) return;
 
-                weightedReturnSum += (etf.growth + etf.yieldStart) * ratio;
-                usedTickers.push({ ticker: ticker, name: etf.name, ratio: ratio, growth: etf.growth, yieldStart: etf.yieldStart, yieldGrowth: etf.yieldGrowth });
+                const adjGrowth = etf.growth * growthMultiplier;
+                weightedReturnSum += (adjGrowth + etf.yieldStart) * ratio;
+                usedTickers.push({ ticker: ticker, name: etf.name, ratio: ratio, growth: adjGrowth, yieldStart: etf.yieldStart, yieldGrowth: etf.yieldGrowth });
 
-                const monthlyGrowth = Math.pow(1 + etf.growth, 1 / 12) - 1;
+                const monthlyGrowth = Math.pow(1 + adjGrowth, 1 / 12) - 1;
                 const payoutsPerYear = etf.payoutMonths.length;
 
                 let lumpBalance = initialAmount * ratio;   // 목돈 몫 (연 복리)
@@ -1208,7 +1240,7 @@
 
                     // 4) 연말(12월)에만 목돈 성장 + 배당수익률 자체의 연간 성장 반영
                     if (calendarMonth === 12) {
-                        lumpBalance *= (1 + etf.growth);
+                        lumpBalance *= (1 + adjGrowth);
                         currentYield *= (1 + etf.yieldGrowth);
 
                         const yearIndex = m / 12;
@@ -1236,6 +1268,27 @@
             const totalDividendRatePct = totalPrincipal > 0 ? (totalDividendEver / totalPrincipal) * 100 : 0;
             const netVsPrincipalPct = totalPrincipal > 0 ? (netAfterSale / totalPrincipal) * 100 : 0;
 
+            return {
+                usedTickers, yearlyAsset, yearlyDividendCum, yearlyPrincipal,
+                totalAsset, totalCashPile, totalDividendEver, lastYearDividend,
+                finalTotal, totalPrincipal, capitalGain, taxableGain, capitalGainsTax, netAfterSale,
+                avgAnnualReturnPct, monthlyAvgLastYear, totalDividendRatePct, netVsPrincipalPct
+            };
+        }
+
+        const SCENARIO_LABELS = { pessimistic: "비관", base: "기본", optimistic: "낙관" };
+        const SCENARIO_MULTIPLIERS = { pessimistic: 0.8, base: 1.0, optimistic: 1.2 };
+        let scenarioData = null;
+        let currentInputs = null;
+
+        // ---- 비관/기본/낙관 시나리오 전환: 결과 카드 + 상세 모달 + 표 + 그래프를 해당 시나리오로 갱신 ----
+        function renderScenario(key) {
+            const d = scenarioData[key];
+            const initialAmount = currentInputs.initialAmount;
+            const monthlyAmount = currentInputs.monthlyAmount;
+            const years = currentInputs.years;
+            const reinvest = currentInputs.reinvest;
+
             const resultDiv = document.getElementById("result");
             resultDiv.style.display = "block";
             resultDiv.innerHTML = `
@@ -1244,34 +1297,42 @@
                         <h3>계산 결과 요약</h3>
                         <p class="result-sub">입력하신 조건 기준의 예상 결과입니다.</p>
                     </div>
-                    <button type="button" class="info-btn" id="openDetailModal">ℹ️ 계산 방식 자세히 보기</button>
+                    <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
+                        <div class="scenario-toggle">
+                            <button type="button" class="scenario-btn ${key === "pessimistic" ? "active" : ""}" data-scenario="pessimistic">비관</button>
+                            <button type="button" class="scenario-btn ${key === "base" ? "active" : ""}" data-scenario="base">기본</button>
+                            <button type="button" class="scenario-btn ${key === "optimistic" ? "active" : ""}" data-scenario="optimistic">낙관</button>
+                        </div>
+                        <button type="button" class="info-btn" id="openDetailModal">ℹ️ 계산 방식 자세히 보기</button>
+                    </div>
                 </div>
+                <p class="scenario-note">비관은 가격상승률 ×0.8, 낙관은 ×1.2를 적용한 참고용 시나리오입니다. 배당수익률·배당성장률은 기본값과 동일하게 유지됩니다.</p>
 
                 <div class="result-item-row">
                     <div class="result-icon" style="background:#e7f0e3;">📈</div>
                     <div class="result-text">
                         <div class="result-label">${years}년 후 총 자산</div>
-                        <span class="result-badge" style="background:#e7f0e3; color:#3f6b34;">연평균 수익률 ${avgAnnualReturnPct.toFixed(2)}%</span>
+                        <span class="result-badge" style="background:#e7f0e3; color:#3f6b34;">연평균 수익률 ${d.avgAnnualReturnPct.toFixed(2)}%</span>
                     </div>
-                    <div class="result-value">${Math.round(finalTotal).toLocaleString()}원</div>
+                    <div class="result-value">${Math.round(d.finalTotal).toLocaleString()}원</div>
                 </div>
 
                 <div class="result-item-row">
                     <div class="result-icon" style="background:#fdeaea;">💰</div>
                     <div class="result-text">
                         <div class="result-label">마지막 해 예상 연 배당금 (세후)</div>
-                        <span class="result-badge" style="background:#fdeaea; color:#b23b3b;">월 평균 ${Math.round(monthlyAvgLastYear).toLocaleString()}원</span>
+                        <span class="result-badge" style="background:#fdeaea; color:#b23b3b;">월 평균 ${Math.round(d.monthlyAvgLastYear).toLocaleString()}원</span>
                     </div>
-                    <div class="result-value">${Math.round(lastYearDividend).toLocaleString()}원</div>
+                    <div class="result-value">${Math.round(d.lastYearDividend).toLocaleString()}원</div>
                 </div>
 
                 <div class="result-item-row">
                     <div class="result-icon" style="background:#f0e7f7;">🎁</div>
                     <div class="result-text">
                         <div class="result-label">지금까지 받은 총 배당금 (세후)</div>
-                        <span class="result-badge" style="background:#f0e7f7; color:#6b4f96;">총 배당 수익률 ${totalDividendRatePct.toFixed(2)}%</span>
+                        <span class="result-badge" style="background:#f0e7f7; color:#6b4f96;">총 배당 수익률 ${d.totalDividendRatePct.toFixed(2)}%</span>
                     </div>
-                    <div class="result-value">${Math.round(totalDividendEver).toLocaleString()}원</div>
+                    <div class="result-value">${Math.round(d.totalDividendEver).toLocaleString()}원</div>
                 </div>
 
                 <div class="result-item-row">
@@ -1279,7 +1340,7 @@
                     <div class="result-text">
                         <div class="result-label">투자 원금 (초기+적립 합계)</div>
                     </div>
-                    <div class="result-value">${Math.round(totalPrincipal).toLocaleString()}원</div>
+                    <div class="result-value">${Math.round(d.totalPrincipal).toLocaleString()}원</div>
                 </div>
 
                 <div class="result-item-row">
@@ -1288,33 +1349,37 @@
                         <div class="result-label">매도 시 예상 양도소득세</div>
                         <span class="result-badge" style="background:#fdf1de; color:#a97a2b;">세율 22% (250만원 공제)</span>
                     </div>
-                    <div class="result-value">${Math.round(capitalGainsTax).toLocaleString()}원</div>
+                    <div class="result-value">${Math.round(d.capitalGainsTax).toLocaleString()}원</div>
                 </div>
 
                 <div class="result-item-row">
                     <div class="result-icon" style="background:#e6edf7;">👛</div>
                     <div class="result-text">
                         <div class="result-label">전량 매도 시 실수령액</div>
-                        <span class="result-badge" style="background:#e6edf7; color:#3a5a8c;">원금 대비 ${netVsPrincipalPct.toFixed(2)}%</span>
+                        <span class="result-badge" style="background:#e6edf7; color:#3a5a8c;">원금 대비 ${d.netVsPrincipalPct.toFixed(2)}%</span>
                     </div>
-                    <div class="result-value">${Math.round(netAfterSale).toLocaleString()}원</div>
+                    <div class="result-value">${Math.round(d.netAfterSale).toLocaleString()}원</div>
                 </div>
             `;
 
             document.getElementById("openDetailModal").addEventListener("click", function () {
                 document.getElementById("calcDetailOverlay").classList.add("open");
             });
-
-            buildCalcDetailModal({
-                initialAmount, monthlyAmount, years, reinvest, usedTickers,
-                avgAnnualReturnPct, totalPrincipal, totalAsset, totalCashPile, finalTotal,
-                totalDividendEver, lastYearDividend, capitalGain, taxableGain, capitalGainsTax, netAfterSale
+            document.querySelectorAll(".scenario-btn").forEach(function (btn) {
+                btn.addEventListener("click", function () {
+                    renderScenario(this.dataset.scenario);
+                });
             });
 
-            buildYearlyTable(yearlyAsset, yearlyDividendCum, yearlyPrincipal, years);
+            buildCalcDetailModal(Object.assign({
+                initialAmount, monthlyAmount, years, reinvest,
+                scenarioKey: key, scenarioLabel: SCENARIO_LABELS[key], growthMultiplier: SCENARIO_MULTIPLIERS[key]
+            }, d));
 
-            drawChart(yearlyAsset, yearlyDividendCum, yearlyPrincipal, years);
-        });
+            buildYearlyTable(d.yearlyAsset, d.yearlyDividendCum, d.yearlyPrincipal, years);
+
+            drawChart(d.yearlyAsset, d.yearlyDividendCum, d.yearlyPrincipal, years);
+        }
 
         // ---- "계산 방식 자세히 보기" 모달: 이번 계산이 실제로 어떻게 나왔는지 숫자로 설명 ----
         function buildCalcDetailModal(d) {
@@ -1324,7 +1389,16 @@
                 return `<li><b>${t.ticker}</b> (${(t.ratio * 100).toFixed(0)}%) — 가격상승률 ${(t.growth * 100).toFixed(2)}%, 배당수익률 ${(t.yieldStart * 100).toFixed(2)}%, 배당성장률 ${(t.yieldGrowth * 100).toFixed(1)}%</li>`;
             }).join("");
 
+            const scenarioNote = d.scenarioKey !== "base"
+                ? `<div class="calc-block" style="background:#fdf1de;">
+                       <b>0. 시나리오 안내</b><br>
+                       지금 보고 있는 결과는 <b>${d.scenarioLabel} 시나리오</b>입니다. 각 종목의 가격상승률에
+                       ${d.growthMultiplier}배를 곱해 계산했고, 배당수익률·배당성장률은 기본값과 동일합니다.
+                   </div>`
+                : "";
+
             body.innerHTML = `
+                ${scenarioNote}
                 <div class="calc-block">
                     <b>1. 입력 조건</b><br>
                     초기 투자금 ${Math.round(d.initialAmount).toLocaleString()}원 + 매달 적립금 ${Math.round(d.monthlyAmount).toLocaleString()}원을

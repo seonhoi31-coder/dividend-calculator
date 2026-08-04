@@ -1063,7 +1063,7 @@
                 const label = document.createElement("span");
                 const tooltipLines = tooltipText(etf).split("\n").join("<br>");
                 label.innerHTML =
-                    "<b>" + etf.ticker + "</b> " + etf.name +
+                    "<b>" + etf.ticker + "</b>" +
                     '<span class="info-icon" tabindex="0">?<span class="tooltip-text">' + tooltipLines + "</span></span>";
 
                 const input = document.createElement("input");

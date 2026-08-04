@@ -207,9 +207,9 @@
         .search-result-item:last-child { border-bottom: none; }
         .search-result-item:hover { background-color: #f0ebe1; }
         .search-result-item b { margin-right: 4px; }
-        .search-result-item .cat-tag { color: #999; font-size: 11px; margin-left: 6px; }
+        .search-result-item .cat-tag { color: #6d6246; font-size: 11px; margin-left: 6px; }
 
-        .period-note { font-size: 12px; color: #999; margin-top: 4px; }
+        .period-note { font-size: 12px; color: #6d6246; margin-top: 4px; }
 
         button {
             margin-top: 20px;
@@ -223,7 +223,7 @@
         }
         button:hover { background-color: #75674d; }
         .toggle { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
-        #result { margin-top: 20px; }
+        #result { margin-top: 20px; transition: opacity 0.15s ease; }
         #result .row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #ddd2ba; }
         #result .label { color: #555; }
         #result .value { font-weight: bold; }
@@ -235,7 +235,7 @@
             margin-bottom: 14px;
         }
         .result-header h3 { margin: 0 0 4px 0; font-size: 17px; }
-        .result-header .result-sub { font-size: 12px; color: #888; margin: 0; }
+        .result-header .result-sub { font-size: 12px; color: #6d6246; margin: 0; }
         .info-btn {
             flex-shrink: 0;
             margin: 0;
@@ -246,6 +246,7 @@
             border: none;
             border-radius: 20px;
             cursor: pointer;
+            transition: background-color 0.15s ease;
         }
         .info-btn:hover { background-color: #ddd2ba; }
 
@@ -313,7 +314,7 @@
         .lifestyle-cell { text-align: left !important; color: #5c7a5c; white-space: nowrap; }
         .clickable-th { cursor: pointer; }
         .clickable-th:hover { color: #4caf7d; }
-        .toggle-hint { font-size: 10px; color: #a89b7f; font-weight: normal; }
+        .toggle-hint { font-size: 10px; color: #6e6250; font-weight: normal; }
         .final-badge {
             display: inline-block;
             margin-left: 6px;
@@ -358,7 +359,7 @@
             padding: 4px 10px;
             background: none;
             border: none;
-            color: #888;
+            color: #6d6246;
             font-size: 15px;
             cursor: pointer;
         }
@@ -417,7 +418,7 @@
             margin-bottom: 20px;
         }
         label { display: block; margin-top: 14px; margin-bottom: 4px; font-size: 14px; }
-        label .hint { font-size: 11px; color: #999; font-weight: normal; }
+        label .hint { font-size: 11px; color: #6d6246; font-weight: normal; }
         input[type="text"] {
             width: 100%;
             padding: 8px;
@@ -436,6 +437,7 @@
             cursor: pointer;
             font-size: 15px;
             width: 100%;
+            transition: background-color 0.15s ease;
         }
         button.calc-btn:hover { background-color: #75674d; }
 
@@ -448,7 +450,7 @@
             gap: 10px;
         }
         .result-header h3 { margin: 0 0 4px 0; font-size: 17px; }
-        .result-header .result-sub { font-size: 12px; color: #888; margin: 0; }
+        .result-header .result-sub { font-size: 12px; color: #6d6246; margin: 0; }
         .info-btn {
             flex-shrink: 0;
             margin: 0;
@@ -459,6 +461,7 @@
             border: none;
             border-radius: 20px;
             cursor: pointer;
+            transition: background-color 0.15s ease;
         }
         .info-btn:hover { background-color: #ddd2ba; }
 
@@ -542,7 +545,7 @@
             padding: 4px 10px;
             background: none;
             border: none;
-            color: #888;
+            color: #6d6246;
             font-size: 15px;
             cursor: pointer;
         }
@@ -598,6 +601,7 @@
             cursor: pointer;
             font-size: 14px;
             font-family: 'Georgia', serif;
+            transition: color 0.15s ease, border-bottom-color 0.15s ease;
         }
         .topnav-links button:hover { color: #4caf7d; }
         .topnav-links button.active { color: #4caf7d; border-bottom-color: #4caf7d; font-weight: bold; }
@@ -628,8 +632,10 @@
             top: 14px;
             color: #8a7a5c;
             font-weight: normal;
+            display: inline-block;
+            transition: transform 0.15s ease;
         }
-        .faq-item[open] summary::after { content: "−"; }
+        .faq-item[open] summary::after { transform: rotate(45deg); }
         .faq-item p {
             font-size: 13px;
             color: #555;
@@ -648,9 +654,10 @@
             border: 1px solid #d9cdb3;
             border-radius: 20px;
             cursor: pointer;
+            transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
         }
         .scenario-btn.active { background-color: #8a7a5c; color: #fff; border-color: #8a7a5c; font-weight: bold; }
-        .scenario-note { font-size: 11px; color: #999; margin: 0 0 14px 0; line-height: 1.6; }
+        .scenario-note { font-size: 11px; color: #6d6246; margin: 0 0 14px 0; line-height: 1.6; }
         @media (max-width: 600px) {
             .scenario-toggle { justify-content: space-between; width: 100%; }
             .scenario-btn { flex: 1; }
@@ -1291,6 +1298,7 @@
 
             const resultDiv = document.getElementById("result");
             resultDiv.style.display = "block";
+            resultDiv.style.opacity = "0";
             resultDiv.innerHTML = `
                 <div class="result-header">
                     <div>
@@ -1379,6 +1387,10 @@
             buildYearlyTable(d.yearlyAsset, d.yearlyDividendCum, d.yearlyPrincipal, years);
 
             drawChart(d.yearlyAsset, d.yearlyDividendCum, d.yearlyPrincipal, years);
+
+            // opacity 0 → 1로 짧게 페이드인 (강제 리플로우로 트랜지션이 확실히 걸리게 함)
+            void resultDiv.offsetWidth;
+            resultDiv.style.opacity = "1";
         }
 
         // ---- "계산 방식 자세히 보기" 모달: 이번 계산이 실제로 어떻게 나왔는지 숫자로 설명 ----

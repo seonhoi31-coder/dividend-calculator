@@ -398,7 +398,23 @@
             /* 그래프를 좀 더 크게, Y축 숫자는 억/천/만 단위로 간소화 */
             #chartSection canvas { min-height: 320px; }
         }
-    
+
+        /* ---- PC: 입력 폼(왼쪽) / 결과·그래프(오른쪽) 2단 배치 ---- */
+        @media (min-width: 900px) {
+            #view-future .container {
+                max-width: 1000px;
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                column-gap: 24px;
+                align-items: start;
+            }
+            #view-future .container > h2 { grid-column: 1 / -1; grid-row: 1; }
+            #view-future .container > div:nth-of-type(1) { grid-column: 1; grid-row: 2; }
+            #view-future .container > div:nth-of-type(2) { grid-column: 1; grid-row: 3; }
+            #view-future .container > #result { grid-column: 2; grid-row: 2; }
+            #view-future .container > #chartSection { grid-column: 2; grid-row: 3; }
+        }
+
 
         /* ---- 세금계산기 전용 스타일 ---- */
 
@@ -697,7 +713,7 @@
 
     <div id="view-future" class="view active">
         <div class="container">
-        <h2>미래자산 계산기 <span style="font-size:14px; font-weight:normal; color:#8a7a5c;">미국 ETF 계산기</span></h2>
+        <h2 style="margin-bottom:20px;">미래자산 계산기 <span style="font-size:14px; font-weight:normal; color:#8a7a5c;">미국 ETF 계산기</span></h2>
 
         <div class="section">
             <label>초기 투자 금액 (원)</label>
@@ -717,7 +733,7 @@
             </div>
 
             <label>투자 기간 (년)</label>
-            <input type="number" id="years" value="10">
+            <input type="number" id="years" value="10" min="1" max="60">
             <div class="quick-add-row">
                 <button type="button" class="quick-btn" data-target="years" data-amount="1">+1년</button>
                 <button type="button" class="quick-btn" data-target="years" data-amount="5">+5년</button>
@@ -1155,8 +1171,13 @@
                 if (el) sum += parseFloat(el.value) || 0;
             });
             const display = document.getElementById("ratioSumDisplay");
-            display.textContent = "현재 합계: " + sum + "%";
-            display.style.color = (sum === 100) ? "green" : "#c0392b";
+            if (selectedTickers.length === 0) {
+                display.textContent = "종목을 먼저 추가해주세요";
+                display.style.color = "#c0392b";
+            } else {
+                display.textContent = "현재 합계: " + sum + "%";
+                display.style.color = (sum === 100) ? "green" : "#c0392b";
+            }
 
             const isValid = selectedTickers.length > 0 && sum === 100;
             document.getElementById("calcButton").disabled = !isValid;
@@ -1189,12 +1210,18 @@
                 const el = document.getElementById(targetId);
 
                 if (targetId === "years") {
-                    el.value = Math.max(1, (parseInt(el.value) || 0) + amount);
+                    el.value = Math.min(60, Math.max(1, (parseInt(el.value) || 0) + amount));
                 } else {
                     const current = parseFloat(el.value.replace(/,/g, "")) || 0;
                     el.value = (current + amount).toLocaleString();
                 }
             });
+        });
+
+        // 투자 기간 직접 입력 시에도 1~60년 범위로 보정 (min/max 속성은 스피너에만 적용되므로)
+        document.getElementById("years").addEventListener("blur", function () {
+            const val = parseInt(this.value) || 1;
+            this.value = Math.min(60, Math.max(1, val));
         });
 
         // ---- 계산하기 ----
